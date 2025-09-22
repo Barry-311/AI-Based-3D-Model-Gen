@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ai-generator-backend
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/qiniuyun
+    username: root
+    password: your-password
+  profiles:
+    active: local
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.qiniuyun.aibased3dmodelgen.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+
