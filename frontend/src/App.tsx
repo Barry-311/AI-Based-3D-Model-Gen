@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Header from "./components/Header";
+import ModelPlayground from "./components/ModelPlayground";
+import PromptCard from "./components/PromptCard";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="flex flex-col h-[100vh]">
+      <header className="flex h-5 pl-5 pr-5 mt-5 mb-2 gap-x-10">
+        <Header />
+      </header>
+      <main className="flex flex-col md:flex-row flex-1 p-5 gap-5">
+        <section className="basis-[30%]">
+          <Card className="flex-1">
+            <CardHeader>
+              <CardTitle>新建模型</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PromptCard />
+            </CardContent>
+          </Card>
+        </section>
+        <section className="basis-[70%] flex">
+          <Card className="flex-1 flex flex-col">
+            <CardContent className="flex-1">
+              <ModelPlayground />
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
