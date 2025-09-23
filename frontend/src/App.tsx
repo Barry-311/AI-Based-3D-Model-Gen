@@ -1,12 +1,5 @@
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Toaster } from "./components/ui/sonner";
 import Header from "./components/Header";
 import ModelPlayground from "./components/ModelPlayground";
 import PromptCard from "./components/PromptCard";
@@ -36,6 +29,7 @@ function App() {
           </Card>
         </section>
       </main>
+      <Toaster position="top-center" />
     </div>
   );
 }

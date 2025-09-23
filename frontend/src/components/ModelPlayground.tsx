@@ -4,9 +4,13 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Checkbox } from "@/components/ui/checkbox";
+import { IconDownload } from "@tabler/icons-react";
+import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
+import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import ModelIcon from "./ModelIcon";
+import DownloadForm from "./DownloadForm";
 
 interface IModel {
   mtlUrl: string;
@@ -35,17 +39,13 @@ function GroundPlane() {
 
 function Model({ objUrl, mtlUrl, renderTexture }: IModel) {
   const materials = useLoader(MTLLoader, objUrl);
-  const obj = useLoader(
-    OBJLoader,
-    mtlUrl,
-    (loader) => {
-      materials.preload();
-      for (const material of Object.values(materials.materials)) {
-        material.side = THREE.DoubleSide;
-      }
-      loader.setMaterials(materials);
+  const obj = useLoader(OBJLoader, mtlUrl, (loader) => {
+    materials.preload();
+    for (const material of Object.values(materials.materials)) {
+      material.side = THREE.DoubleSide;
     }
-  );
+    loader.setMaterials(materials);
+  });
 
   // 当 renderTexture 变化时，克隆一个新的模型并切换它的材质
   const clonedObj = useMemo(() => {
@@ -70,14 +70,26 @@ function ModelPlayground() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <section className="mb-4">
-        <span className="flex gap-x-2">
+      <section className="mb-4 flex gap-5 items-center">
+        <span className="flex gap-x-2 items-center">
           <Label htmlFor="render-texture">显示纹理</Label>
           <Checkbox
             id="render-texture"
             checked={renderTexture}
             onCheckedChange={(checked: boolean) => setRenderTexture(checked)}
           />
+        </span>
+        <span className="ml-[auto] flex gap-x-2">
+          <Popover>
+            <PopoverTrigger>
+              <Button variant="outline">
+                <IconDownload />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <DownloadForm />
+            </PopoverContent>
+          </Popover>
         </span>
       </section>
       <div className="w-full h-full flex gap-10 justify-center items-center text-6xl text-gray-400">
