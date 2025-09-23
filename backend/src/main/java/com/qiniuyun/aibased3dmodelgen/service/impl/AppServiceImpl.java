@@ -31,7 +31,7 @@ public class AppServiceImpl implements AppService {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId < 0, ErrorCode.PARAMS_ERROR, "应用 ID 错误");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
-        return aiGeneratorFacade.generateStream(appId, message, objectGenTypeEnum);
+        return aiGeneratorFacade.generatePromptStream(appId, message, objectGenTypeEnum);
     }
 
     @Override

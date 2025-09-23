@@ -7,12 +7,21 @@ import com.qiniuyun.aibased3dmodelgen.common.ResultUtils;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateStreamRequest;
+import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
+import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.ObjectDownloadService;
+import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
+import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,10 +29,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/app")
+@Slf4j
 public class AppController {
 
     @Resource
@@ -31,6 +42,12 @@ public class AppController {
 
     @Resource
     private ObjectDownloadService objectDownloadService;
+
+    @Resource
+    private Tripo3DService tripo3DService;
+
+    @Resource
+    private Model3DService model3DService;
 
     /**
      * 上传图片
@@ -76,7 +93,7 @@ public class AppController {
      * @param response 响应
      */
     @GetMapping("/download/{appId}")
-    public void downloadAppCode(@PathVariable Long appId,
+    public void downloadObject(@PathVariable Long appId,
                                 HttpServletResponse response) {
         // 基础校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
@@ -91,5 +108,87 @@ public class AppController {
         String downloadFileName = appId + ".obj";
         // 调用通用下载服务
         objectDownloadService.downloadObject(sourceDirPath, downloadFileName, response);
+    }
+
+    /**
+     * API端点：根据提示词创建模型生成任务
+     * 请求体示例: { "prompt": "a high-quality, detailed, 3d model of a hamburger" }
+     */
+    @PostMapping("/generate")
+    public Mono<ResponseEntity<ModelGenerateResponse>> createGenerationTask(@RequestBody Map<String, String> payload) {
+        String prompt = payload.get("prompt");
+        if (prompt == null || prompt.isBlank()) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
+        return tripo3DService.generateModelFromText(prompt)
+                .map(ResponseEntity::ok) // 成功时返回 200 OK 和响应体
+                .onErrorResume(e -> {
+                    // 简单的错误处理
+                    log.info("Error calling Tripo3D generate API: " + e.getMessage());
+                    return Mono.just(ResponseEntity.internalServerError().build());
+                });
+    }
+
+    /**
+     * API端点：查询指定任务的状态
+     */
+    @GetMapping("/status/{taskId}")
+    public Mono<ResponseEntity<TaskStatusResponse>> getTaskStatus(@PathVariable String taskId) {
+        return tripo3DService.checkTaskStatus(taskId)
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> {
+                    log.error("Error calling Tripo3D status API: " + e.getMessage());
+                    return Mono.just(ResponseEntity.internalServerError().build());
+                });
+    }
+
+    /**
+     * 使用SSE实时推送3D模型生成进度，并保存模型数据
+     */
+    @PostMapping(value = "/generate-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<Model3D>> generateModelWithProgress(
+            @RequestBody @Valid ModelGenerateStreamRequest request) {
+        
+        String prompt = request.getPrompt();
+        
+        return tripo3DService.generateModelFromText(prompt)
+                .flatMapMany(response -> {
+                    String taskId = response.getTaskId();
+                    
+                    // 创建轮询流，每5秒检查一次状态
+                    return Flux.interval(Duration.ofSeconds(5))
+                            .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                            .map(statusResponse -> {
+                                // 保存或更新模型数据
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, prompt);
+                                
+                                // 如果任务完成，异步下载模型文件
+                                if ("success".equals(statusResponse.getStatus())) {
+                                    // 异步下载，不阻塞响应
+                                    Mono.fromRunnable(() -> model3DService.downloadAndSaveModel(model3D))
+                                            .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                            .subscribe();
+                                }
+                                
+                                return model3D;
+                            })
+                            .takeUntil(model3D -> {
+                                String status = model3D.getStatus();
+                                return "success".equals(status) || "failed".equals(status) || 
+                                       "banned".equals(status) || "expired".equals(status) || 
+                                       "cancelled".equals(status);
+                            })
+                            .map(model3D -> ServerSentEvent.<Model3D>builder()
+                                    .data(model3D)
+                                    .event("progress")
+                                    .build());
+                })
+                .onErrorResume(e -> {
+                    log.error("Error in streaming generation: " + e.getMessage());
+                    return Flux.just(ServerSentEvent.<Model3D>builder()
+                            .event("error")
+                            .data(null)
+                            .build());
+                });
     }
 }

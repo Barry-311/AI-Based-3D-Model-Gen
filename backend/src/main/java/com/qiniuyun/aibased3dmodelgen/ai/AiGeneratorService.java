@@ -6,11 +6,20 @@ import reactor.core.publisher.Flux;
 public interface AiGeneratorService {
 
     /**
-     * 生成 OBJ prompt
+     * 生成 OBJ prompt（流式）
      *
      * @param userMessage 用户消息
      * @return 生成的代码结果
      */
-    @SystemMessage(fromResource = "prompt/codegen-3d-obj-prompt.txt")
+    @SystemMessage(fromResource = "prompt/gen-3d-obj-prompt.txt")
     Flux<String> generateOBJStream(String userMessage);
+
+
+    /**
+     * 生成 OBJ prompt（非流式）
+     * @param userMessage
+     * @return
+     */
+    @SystemMessage(fromResource = "prompt/gen-3d-obj-prompt.txt")
+    String generateOBJ(String userMessage);
 }

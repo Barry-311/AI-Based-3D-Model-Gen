@@ -24,12 +24,12 @@ public class AiGeneratorServiceFactory {
     /**
      * 创建 AI 代码生成器服务
      * @param appId
-     * @param codeGenType
+     * @param objectGenType
      * @return
      */
-    private AiGeneratorService createAiGeneratorService(long appId, ObjectGenTypeEnum codeGenType) {
+    private AiGeneratorService createAiGeneratorService(long appId, ObjectGenTypeEnum objectGenType) {
         log.info("为 appId: {} 创建新的 AI 服务实例", appId);
-        return switch (codeGenType) {
+        return switch (objectGenType) {
             // OBJ
             case OBJ -> {
                 // 使用多例模式的 StreamingChatModel 解决并发问题
@@ -40,7 +40,7 @@ public class AiGeneratorServiceFactory {
                         .build();
             }
             default ->
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的模型生成类型: " + codeGenType.getValue());
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的模型生成类型: " + objectGenType.getValue());
         };
     }
 

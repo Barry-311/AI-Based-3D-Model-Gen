@@ -10,8 +10,9 @@ public interface ObjectDownloadService {
     /**
      * 下载模型
      * @param projectPath
-     * @param objectName
+     * @param downloadFileName
      * @param response
+     * @return
      */
-    void downloadObject(String projectPath, String objectName, HttpServletResponse response);
+    void downloadObject(String projectPath, String downloadFileName, HttpServletResponse response);
 }
