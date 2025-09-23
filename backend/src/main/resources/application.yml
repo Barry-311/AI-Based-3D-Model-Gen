@@ -46,4 +46,13 @@ langchain4j:
       log-requests: true
       log-responses: true
 
+# 对象存储配置
+cos:
+  client:
+    host: your-host
+    secretId: your-secret-id
+    secretKey: your-secret-key
+    region: your-region
+    bucket: your-bucket-name
+
 

@@ -2,6 +2,8 @@ package com.qiniuyun.aibased3dmodelgen.controller;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.qiniuyun.aibased3dmodelgen.common.BaseResponse;
+import com.qiniuyun.aibased3dmodelgen.common.ResultUtils;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
@@ -13,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +31,17 @@ public class AppController {
 
     @Resource
     private ObjectDownloadService objectDownloadService;
+
+    /**
+     * 上传图片
+     */
+    @PostMapping("/upload")
+    public BaseResponse<Boolean> uploadPicture(
+            @RequestPart("file") MultipartFile multipartFile) {
+        boolean result = appService.uploadPicture(multipartFile);
+        return ResultUtils.success(result);
+    }
+
 
     @GetMapping(value = "/augment/prompt", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> augmentPrompt(@RequestParam Long appId,
