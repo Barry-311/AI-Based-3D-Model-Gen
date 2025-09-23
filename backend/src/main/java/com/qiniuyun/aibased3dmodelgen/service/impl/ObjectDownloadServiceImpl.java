@@ -19,7 +19,6 @@ import java.io.OutputStream;
 @Slf4j
 public class ObjectDownloadServiceImpl implements ObjectDownloadService {
 
-
     @Override
     public void downloadObject(String objectDirPath, String objectName, HttpServletResponse response) {
         // 基础校验

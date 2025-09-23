@@ -25,4 +25,25 @@ knife4j:
   setting:
     language: zh_cn
 
+# AI
+langchain4j:
+  open-ai:
+    # 聊天 AI 模型配置（用于简单的聊天任务）
+    streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: your-api-key
+      model-name: deepseek-chat
+      max-tokens: 8192
+      log-requests: true
+      log-responses: true
+    # 推理 AI 模型配置（用于复杂的推理任务）
+    reasoning-streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: your-api-key
+      model-name: deepseek-reasoner
+      max-tokens: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
+
 

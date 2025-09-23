@@ -1,23 +1,59 @@
 package com.qiniuyun.aibased3dmodelgen.controller;
 
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
+import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
+import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.ObjectDownloadService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/app")
 public class AppController {
+
+    @Resource
+    private AppService appService;
+
     @Resource
     private ObjectDownloadService objectDownloadService;
+
+    @GetMapping(value = "/augment/prompt", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> augmentPrompt(@RequestParam Long appId,
+                                      @RequestParam String message) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 错误");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
+
+        // 调用服务生成（SSE 流式返回）
+        Flux<String> contentFlux = appService.augmentPrompt(appId, message, ObjectGenTypeEnum.OBJ);
+        return contentFlux
+                .map(chunk -> {
+                    Map<String, String> wrapper = Map.of("d", chunk);
+                    String jsonData = JSONUtil.toJsonStr(wrapper);
+                    return ServerSentEvent.<String>builder()
+                            .data(jsonData)
+                            .build();
+                })
+                .concatWith(Mono.just(
+                        // 发送结束事件
+                        ServerSentEvent.<String>builder()
+                                .event("done")
+                                .data("")
+                                .build()
+                ));
+    }
 
     /**
      * 下载应用代码
