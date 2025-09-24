@@ -3,6 +3,7 @@ package com.qiniuyun.aibased3dmodelgen.service;
 import com.mybatisflex.core.service.IService;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
+import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 
 public interface Model3DService extends IService<Model3D> {
     
@@ -20,4 +21,6 @@ public interface Model3DService extends IService<Model3D> {
      * 下载并保存模型文件到本地
      */
     void downloadAndSaveModel(Model3D model3D);
+
+    Model3DVO getAppVO(Model3D model3D);
 }

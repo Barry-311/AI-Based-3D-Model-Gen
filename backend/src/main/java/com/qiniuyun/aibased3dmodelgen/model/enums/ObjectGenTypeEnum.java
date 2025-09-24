@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 public enum ObjectGenTypeEnum {
 
-    OBJ("OBJ 格式模型", "obj");
+    PBR("PBR 格式模型", "obj");
 
     private final String text;
     private final String value;

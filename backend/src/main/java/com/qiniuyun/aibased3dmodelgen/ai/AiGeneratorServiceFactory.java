@@ -30,8 +30,8 @@ public class AiGeneratorServiceFactory {
     private AiGeneratorService createAiGeneratorService(long appId, ObjectGenTypeEnum objectGenType) {
         log.info("为 appId: {} 创建新的 AI 服务实例", appId);
         return switch (objectGenType) {
-            // OBJ
-            case OBJ -> {
+            // PBR
+            case PBR -> {
                 // 使用多例模式的 StreamingChatModel 解决并发问题
                 StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiGeneratorService.class)

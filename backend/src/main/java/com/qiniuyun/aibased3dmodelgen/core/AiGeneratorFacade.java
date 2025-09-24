@@ -37,7 +37,7 @@ public class AiGeneratorFacade {
         // 根据 appId 获取对应的 AI 服务实例
         AiGeneratorService aiGeneratorService = aiGeneratorServiceFactory.getAiGeneratorService(appId, objectGenTypeEnum);
         return switch (objectGenTypeEnum) {
-            case OBJ -> aiGeneratorService.generateOBJ(message);
+            case PBR -> aiGeneratorService.generatePBR(message);
             default -> {
                 String errorMessage = "不支持的生成类型：" + objectGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
@@ -52,7 +52,7 @@ public class AiGeneratorFacade {
         // 根据 appId 获取对应的 AI 服务实例
         AiGeneratorService aiGeneratorService = aiGeneratorServiceFactory.getAiGeneratorService(appId, objectGenTypeEnum);
         return switch (objectGenTypeEnum) {
-            case OBJ -> aiGeneratorService.generateOBJStream(message);
+            case PBR -> aiGeneratorService.generatePBRStream(message);
             default -> {
                 String errorMessage = "不支持的生成类型：" + objectGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);

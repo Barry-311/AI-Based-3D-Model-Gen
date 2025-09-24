@@ -18,7 +18,7 @@ class AiGeneratorFacadeTest {
     private AiGeneratorFacade aiGeneratorFacade;
     @Test
     void generateStream() {
-        Flux<String> codeStream = aiGeneratorFacade.generatePromptStream(1L,"生成一艘小船，要大概5m长", ObjectGenTypeEnum.OBJ);
+        Flux<String> codeStream = aiGeneratorFacade.generatePromptStream(1L,"生成一艘小船，要大概5m长", ObjectGenTypeEnum.PBR);
         // 阻塞等待所有数据收集完成
         List<String> result = codeStream.collectList().block();
         // 验证结果

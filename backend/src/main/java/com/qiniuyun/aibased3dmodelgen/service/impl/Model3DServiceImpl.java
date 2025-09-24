@@ -1,10 +1,12 @@
 package com.qiniuyun.aibased3dmodelgen.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.qiniuyun.aibased3dmodelgen.mapper.Model3DMapper;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
+import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
 import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
 import lombok.extern.slf4j.Slf4j;
@@ -85,14 +87,14 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
             byte[] modelData = tripo3DService.downloadModel(modelUrl).block();
             
             if (modelData != null && modelData.length > 0) {
-                // 创建保存目录
-                File saveDir = new File("tmp/models");
+                // 创建保存目录 - 修改为 tmp/object_output
+                File saveDir = new File("tmp/object_output");
                 if (!saveDir.exists()) {
                     saveDir.mkdirs();
                 }
                 
-                // 保存文件
-                String fileName = model3D.getTaskId() + "_model.glb";
+                // 保存文件 - 修改文件名格式为 "model3D_" + taskId
+                String fileName = "model3D_" + model3D.getTaskId() + ".glb";
                 File modelFile = new File(saveDir, fileName);
                 
                 try (FileOutputStream fos = new FileOutputStream(modelFile)) {
@@ -111,5 +113,15 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         } catch (Exception e) {
             log.error("下载模型文件失败: {}", model3D.getTaskId(), e);
         }
+    }
+
+    @Override
+    public Model3DVO getAppVO(Model3D model3D) {
+        if (model3D == null) {
+            return null;
+        }
+        Model3DVO model3DVO = new Model3DVO();
+        BeanUtil.copyProperties(model3D, model3DVO);
+        return model3DVO;
     }
 }
