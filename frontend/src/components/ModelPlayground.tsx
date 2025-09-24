@@ -237,7 +237,8 @@ function ModelPlayground() {
             /> */}
             <Bounds fit clip observe margin={1.2}>
               <GLBModel
-                glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
+                // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
+                glbUrl="/test_models/cat/cat.glb"
                 renderTexture={renderTexture}
                 onLoad={setModelDetails}
               />
