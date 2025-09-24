@@ -1,10 +1,18 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
-import { Bounds, Box, OrbitControls } from "@react-three/drei";
+import { Bounds, Box, Html, OrbitControls } from "@react-three/drei";
 import { IconDownload } from "@tabler/icons-react";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
@@ -26,7 +34,7 @@ interface IOBJModelProps {
 
 interface IGLBModelProps {
   glbUrl: string;
-  renderTexture: boolean;
+  shouldRenderTexture: boolean;
   onLoad?: (details: modelDetails) => void;
 }
 
@@ -47,6 +55,43 @@ function GroundPlane({ size = 40 }) {
       <meshPhongMaterial map={texture} side={THREE.DoubleSide} />
     </mesh>
   );
+}
+
+function ContextManager({
+  setContextLost,
+}: {
+  setContextLost: Dispatch<SetStateAction<boolean>>;
+}) {
+  const { gl } = useThree(); // 获取 renderer
+
+  useEffect(() => {
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.error("WebGL context lost!");
+      setContextLost(true);
+    };
+
+    const handleContextRestored = () => {
+      console.log("WebGL context restored.");
+      setContextLost(false);
+      // 在这里可能需要重新初始化一些场景状态
+    };
+
+    const canvas = gl.domElement;
+    canvas.addEventListener("webglcontextlost", handleContextLost, false);
+    canvas.addEventListener(
+      "webglcontextrestored",
+      handleContextRestored,
+      false
+    );
+
+    return () => {
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      canvas.removeEventListener("webglcontextrestored", handleContextRestored);
+    };
+  }, [gl, setContextLost]);
+
+  return null;
 }
 
 function SceneUpdater({ modelDetails }: { modelDetails: modelDetails | null }) {
@@ -101,7 +146,7 @@ function OBJModel({ objUrl, mtlUrl, renderTexture }: IOBJModelProps) {
   return <primitive object={clonedObj} />;
 }
 
-function GLBModel({ glbUrl, renderTexture, onLoad }: IGLBModelProps) {
+function GLBModel({ glbUrl, shouldRenderTexture, onLoad }: IGLBModelProps) {
   const gltf = useLoader(GLTFLoader, glbUrl);
 
   // 调整后的场景对象
@@ -158,12 +203,12 @@ function GLBModel({ glbUrl, renderTexture, onLoad }: IGLBModelProps) {
     }
   }, [gltf.scene, onLoad]);
 
-  // 根据 renderTexture prop 的变化来切换材质
+  // 根据 shouldRenderTexture prop 的变化来切换材质
   useEffect(() => {
     if (adjustedScene) {
       adjustedScene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          if (renderTexture) {
+          if (shouldRenderTexture) {
             // 显示纹理：从 Map 中恢复原始材质
             child.material =
               originalMaterials.current.get(child.uuid) || child.material;
@@ -174,15 +219,16 @@ function GLBModel({ glbUrl, renderTexture, onLoad }: IGLBModelProps) {
         }
       });
     }
-  }, [adjustedScene, renderTexture, whiteMaterial]);
+  }, [adjustedScene, shouldRenderTexture, whiteMaterial]);
 
   // 在 adjustedScene 准备好后才渲染
   return adjustedScene ? <primitive object={adjustedScene} /> : null;
 }
 
 function ModelPlayground() {
-  const [renderTexture, setRenderTexture] = useState(true);
+  const [shouldRenderTexture, setShouldRenderTexture] = useState(true);
   const [modelDetails, setModelDetails] = useState<modelDetails | null>(null);
+  const [isContextLost, setIsContextLost] = useState(false);
 
   const groundSize = useMemo(() => {
     if (!modelDetails) return 40; // 默认大小
@@ -198,8 +244,8 @@ function ModelPlayground() {
           <Label htmlFor="render-texture">显示纹理</Label>
           <Checkbox
             id="render-texture"
-            checked={renderTexture}
-            onCheckedChange={(checked: boolean) => setRenderTexture(checked)}
+            checked={shouldRenderTexture}
+            onCheckedChange={(checked: boolean) => setShouldRenderTexture(checked)}
           />
         </span>
         <span className="ml-[auto] flex gap-x-2">
@@ -215,9 +261,12 @@ function ModelPlayground() {
           </Popover>
         </span>
       </section>
-      <div className="w-full h-full flex gap-10 justify-center items-center text-6xl text-gray-400">
-        {/* <ModelIcon />
-        模型预览 */}
+      <div className="w-full h-full relative gap-10 justify-center items-center text-6xl text-gray-400">
+        {isContextLost && (
+          <div className="absolute inset-0 flex flex-col justify-center items-center bg-white z-10">
+            <p className="text-2xl text-gray-500">渲染时发生错误</p>
+          </div>
+        )}
         <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
           <color attach="background" args={["#eeeeee"]} />
           <hemisphereLight args={[0xb1e1ff, 0xb97a20, 2]} />
@@ -227,7 +276,13 @@ function ModelPlayground() {
             intensity={10}
           />
           <GroundPlane size={groundSize} />
-          <Suspense fallback={<ModelIcon />}>
+          <Suspense
+            fallback={
+              <Html center>
+                <ModelIcon />
+              </Html>
+            }
+          >
             {/* <Model
               objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
               mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
@@ -239,7 +294,7 @@ function ModelPlayground() {
               <GLBModel
                 // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
                 glbUrl="/test_models/cat/cat.glb"
-                renderTexture={renderTexture}
+                shouldRenderTexture={shouldRenderTexture}
                 onLoad={setModelDetails}
               />
               {modelDetails && (
@@ -259,6 +314,7 @@ function ModelPlayground() {
           </Suspense>
           <OrbitControls makeDefault />
           <SceneUpdater modelDetails={modelDetails} />
+          <ContextManager setContextLost={setIsContextLost} />
         </Canvas>
       </div>
     </div>
