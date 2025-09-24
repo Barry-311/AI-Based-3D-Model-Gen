@@ -1,9 +1,10 @@
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
-import { Canvas, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
+import { Bounds, Box, OrbitControls } from "@react-three/drei";
 import { IconDownload } from "@tabler/icons-react";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
@@ -12,13 +13,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import ModelIcon from "./ModelIcon";
 import DownloadForm from "./DownloadForm";
 
-interface IModel {
-  mtlUrl: string;
+type modelDetails = {
+  size: THREE.Vector3;
+  center: THREE.Vector3;
+};
+
+interface IOBJModelProps {
   objUrl: string;
+  mtlUrl: string;
   renderTexture: boolean;
 }
 
-function GroundPlane() {
+interface IGLBModelProps {
+  glbUrl: string;
+  renderTexture: boolean;
+  onLoad?: (details: modelDetails) => void;
+}
+
+function GroundPlane({ size = 40 }) {
   const texture = useLoader(
     THREE.TextureLoader,
     "https://threejs.org/manual/examples/resources/images/checker.png"
@@ -31,21 +43,45 @@ function GroundPlane() {
 
   return (
     <mesh rotation-x={-Math.PI / 2} receiveShadow>
-      <planeGeometry args={[40, 40]} />
+      <planeGeometry args={[size, size]} />
       <meshPhongMaterial map={texture} side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-function Model({ objUrl, mtlUrl, renderTexture }: IModel) {
-  const materials = useLoader(MTLLoader, objUrl);
-  const obj = useLoader(OBJLoader, mtlUrl, (loader) => {
+function SceneUpdater({ modelDetails }: { modelDetails: modelDetails | null }) {
+  const { camera } = useThree();
+
+  // 更新相机的 far 属性
+  useEffect(() => {
+    if (modelDetails) {
+      const maxDim = Math.max(
+        modelDetails.size.x,
+        modelDetails.size.y,
+        modelDetails.size.z
+      );
+
+      camera.far = maxDim * 2 + 100000;
+      camera.updateProjectionMatrix();
+    }
+  }, [modelDetails, camera]);
+
+  return null;
+}
+
+function OBJModel({ objUrl, mtlUrl, renderTexture }: IOBJModelProps) {
+  const materials = useLoader(MTLLoader, mtlUrl);
+  const obj = useLoader(OBJLoader, objUrl, (loader) => {
     materials.preload();
     for (const material of Object.values(materials.materials)) {
       material.side = THREE.DoubleSide;
     }
     loader.setMaterials(materials);
   });
+
+  if (!obj) {
+    return null;
+  }
 
   // 当 renderTexture 变化时，克隆一个新的模型并切换它的材质
   const clonedObj = useMemo(() => {
@@ -65,8 +101,95 @@ function Model({ objUrl, mtlUrl, renderTexture }: IModel) {
   return <primitive object={clonedObj} />;
 }
 
+function GLBModel({ glbUrl, renderTexture, onLoad }: IGLBModelProps) {
+  const gltf = useLoader(GLTFLoader, glbUrl);
+
+  // 调整后的场景对象
+  const [adjustedScene, setAdjustedScene] = useState<THREE.Group | null>(null);
+
+  // 存储原始材质
+  const originalMaterials = useRef(
+    new Map<string, THREE.Material | THREE.Material[]>()
+  );
+
+  // 创建纯白材质
+  // PBR 模型使用 MeshStandardMaterial 效果更好
+  const whiteMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "white" }),
+    []
+  );
+
+  useEffect(() => {
+    if (gltf.scene) {
+      // 克隆场景，避免直接修改 useLoader 的缓存结果
+      const sceneClone = gltf.scene.clone();
+
+      // 在定位之前，先遍历并保存原始材质
+      sceneClone.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          // 使用 mesh 的 uuid 作为 key，material 作为 value
+          originalMaterials.current.set(child.uuid, child.material);
+        }
+      });
+
+      // 计算克隆场景的包围盒
+      const box = new THREE.Box3().setFromObject(sceneClone);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      // 计算垂直偏移量，将模型向上移动，使其底部位于 y=0
+      const yOffset = -box.min.y;
+      sceneClone.position.y = yOffset;
+
+      // 保存调整好的场景
+      setAdjustedScene(sceneClone);
+
+      // 更新包围盒中心点信息再传出
+      // 因为我们移动了模型，它的世界坐标中心也变了
+      box.setFromObject(sceneClone);
+      box.getCenter(center);
+
+      // 通过回调将尺寸和新的中心点信息传出
+      if (onLoad) {
+        onLoad({ size, center });
+      }
+    }
+  }, [gltf.scene, onLoad]);
+
+  // 根据 renderTexture prop 的变化来切换材质
+  useEffect(() => {
+    if (adjustedScene) {
+      adjustedScene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          if (renderTexture) {
+            // 显示纹理：从 Map 中恢复原始材质
+            child.material =
+              originalMaterials.current.get(child.uuid) || child.material;
+          } else {
+            // 不显示纹理：应用纯白材质
+            child.material = whiteMaterial;
+          }
+        }
+      });
+    }
+  }, [adjustedScene, renderTexture, whiteMaterial]);
+
+  // 在 adjustedScene 准备好后才渲染
+  return adjustedScene ? <primitive object={adjustedScene} /> : null;
+}
+
 function ModelPlayground() {
   const [renderTexture, setRenderTexture] = useState(true);
+  const [modelDetails, setModelDetails] = useState<modelDetails | null>(null);
+
+  const groundSize = useMemo(() => {
+    if (!modelDetails) return 40; // 默认大小
+    // 取模型在 x 和 z 轴上尺寸的最大值，并乘以 1.5 作为留白
+    const maxSize = Math.max(modelDetails.size.x, modelDetails.size.z);
+    return Math.ceil(maxSize * 1.5);
+  }, [modelDetails]);
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -103,15 +226,38 @@ function ModelPlayground() {
             target-position={[-5, 0, 0]}
             intensity={10}
           />
-          <GroundPlane />
+          <GroundPlane size={groundSize} />
           <Suspense fallback={<ModelIcon />}>
-            <Model
-              objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl" // "/windmill/windmill.mtl"
-              mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj" // "/windmill/windmill.obj"
+            {/* <Model
+              objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
+              mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
+              // objUrl="/test_models/windmill/windmill.obj"
+              // mtlUrl="/test_models/windmill/windmill.mtl"
               renderTexture={renderTexture}
-            />
+            /> */}
+            <Bounds fit clip observe margin={1.2}>
+              <GLBModel
+                glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
+                renderTexture={renderTexture}
+                onLoad={setModelDetails}
+              />
+              {modelDetails && (
+                // 隐形锚点，用于将 Bounds 的焦点拉低
+                <Box
+                  position={[
+                    modelDetails.center.x,
+                    -modelDetails.size.y * 2, // 放在负距离处
+                    modelDetails.center.z,
+                  ]}
+                  args={[1, 1, 1]}
+                >
+                  <meshBasicMaterial transparent opacity={0} />
+                </Box>
+              )}
+            </Bounds>
           </Suspense>
-          <OrbitControls target={[0, 5, 0]} />
+          <OrbitControls makeDefault />
+          <SceneUpdater modelDetails={modelDetails} />
         </Canvas>
       </div>
     </div>
