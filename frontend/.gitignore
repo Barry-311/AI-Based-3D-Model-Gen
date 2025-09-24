@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-public/windmill/
+public/test_models/
+src/services/
+.env
+API_doc.md
+openapi.json
