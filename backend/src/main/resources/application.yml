@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: ai-generator-backend
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/qiniuyun
+    username: root
+    password: your-password
+  profiles:
+    active: local
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.qiniuyun.aibased3dmodelgen.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# AI
+langchain4j:
+  open-ai:
+    # 聊天 AI 模型配置（用于简单的聊天任务）
+    streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: your-api-key
+      model-name: deepseek-chat
+      max-tokens: 8192
+      log-requests: true
+      log-responses: true
+    # 推理 AI 模型配置（用于复杂的推理任务）
+    reasoning-streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: your-api-key
+      model-name: deepseek-reasoner
+      max-tokens: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
+
+# 对象存储配置
+cos:
+  client:
+    host: your-host
+    secretId: your-secret-id
+    secretKey: your-secret-key
+    region: your-region
+    bucket: your-bucket-name
+
+
