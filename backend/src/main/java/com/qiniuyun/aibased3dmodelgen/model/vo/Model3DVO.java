@@ -34,16 +34,6 @@ public class Model3DVO implements Serializable {
     private Integer progress;
 
     /**
-     * 模型 URL
-     */
-    private String modelUrl;
-
-    /**
-     * 基础模型 URL
-     */
-    private String baseModelUrl;
-
-    /**
      * PBR 模型 URL
      */
     private String pbrModelUrl;

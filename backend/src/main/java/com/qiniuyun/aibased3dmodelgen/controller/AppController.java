@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import com.qiniuyun.aibased3dmodelgen.common.BaseResponse;
 import com.qiniuyun.aibased3dmodelgen.common.ResultUtils;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
+import com.qiniuyun.aibased3dmodelgen.core.AiGeneratorFacade;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
@@ -12,6 +13,7 @@ import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateStreamRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
+import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.ObjectDownloadService;
 import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
@@ -49,6 +51,9 @@ public class AppController {
     @Resource
     private Model3DService model3DService;
 
+    @Resource
+    private AiGeneratorFacade aiGeneratorFacade;
+
     /**
      * 上传图片
      */
@@ -68,7 +73,7 @@ public class AppController {
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "提示词不能为空");
 
         // 调用服务生成（SSE 流式返回）
-        Flux<String> contentFlux = appService.augmentPrompt(appId, message, ObjectGenTypeEnum.OBJ);
+        Flux<String> contentFlux = appService.augmentPrompt(appId, message, ObjectGenTypeEnum.PBR);
         return contentFlux
                 .map(chunk -> {
                     Map<String, String> wrapper = Map.of("d", chunk);
@@ -146,9 +151,10 @@ public class AppController {
      * 使用SSE实时推送3D模型生成进度，并保存模型数据
      */
     @PostMapping(value = "/generate-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<Model3D>> generateModelWithProgress(
+    public Flux<ServerSentEvent<Model3DVO>> generateModelWithProgress(
             @RequestBody @Valid ModelGenerateStreamRequest request) {
-        
+        // 参数校验
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         String prompt = request.getPrompt();
         
         return tripo3DService.generateModelFromText(prompt)
@@ -170,22 +176,82 @@ public class AppController {
                                             .subscribe();
                                 }
                                 
-                                return model3D;
+                                // 转换为VO对象
+                                Model3DVO model3DVO = model3DService.getAppVO(model3D);
+                                return model3DVO;
                             })
-                            .takeUntil(model3D -> {
-                                String status = model3D.getStatus();
+                            .takeUntil(model3DVO -> {
+                                String status = model3DVO.getStatus();
                                 return "success".equals(status) || "failed".equals(status) || 
                                        "banned".equals(status) || "expired".equals(status) || 
                                        "cancelled".equals(status);
                             })
-                            .map(model3D -> ServerSentEvent.<Model3D>builder()
-                                    .data(model3D)
+                            .map(model3DVO -> ServerSentEvent.<Model3DVO>builder()
+                                    .data(model3DVO)
                                     .event("progress")
                                     .build());
                 })
                 .onErrorResume(e -> {
                     log.error("Error in streaming generation: " + e.getMessage());
-                    return Flux.just(ServerSentEvent.<Model3D>builder()
+                    return Flux.just(ServerSentEvent.<Model3DVO>builder()
+                            .event("error")
+                            .data(null)
+                            .build());
+                });
+    }
+
+
+
+    /**
+     * 使用SSE实时推送3D模型生成进度，并保存模型数据
+     */
+    @PostMapping(value = "/generate-stream-augmented", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<Model3DVO>> generateAugmentedModelWithProgress(
+            @RequestBody @Valid ModelGenerateStreamRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        // 使用增强的 prompt
+        String prompt = request.getPrompt();
+        String augmentedPrompt = aiGeneratorFacade.generatePrompt(1L, prompt, ObjectGenTypeEnum.PBR);
+        ThrowUtils.throwIf(augmentedPrompt == null, ErrorCode.SYSTEM_ERROR, "生成增强prompt失败");
+
+        return tripo3DService.generateModelFromText(prompt)
+                .flatMapMany(response -> {
+                    String taskId = response.getTaskId();
+
+                    // 创建轮询流，每5秒检查一次状态
+                    return Flux.interval(Duration.ofSeconds(5))
+                            .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                            .map(statusResponse -> {
+                                // 保存或更新模型数据
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, augmentedPrompt);
+
+                                // 如果任务完成，异步下载模型文件
+                                if ("success".equals(statusResponse.getStatus())) {
+                                    // 异步下载，不阻塞响应
+                                    Mono.fromRunnable(() -> model3DService.downloadAndSaveModel(model3D))
+                                            .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                            .subscribe();
+                                }
+
+                                // 转换为VO对象
+                                Model3DVO model3DVO = model3DService.getAppVO(model3D);
+                                return model3DVO;
+                            })
+                            .takeUntil(model3DVO -> {
+                                String status = model3DVO.getStatus();
+                                return "success".equals(status) || "failed".equals(status) ||
+                                        "banned".equals(status) || "expired".equals(status) ||
+                                        "cancelled".equals(status);
+                            })
+                            .map(model3DVO -> ServerSentEvent.<Model3DVO>builder()
+                                    .data(model3DVO)
+                                    .event("progress")
+                                    .build());
+                })
+                .onErrorResume(e -> {
+                    log.error("Error in streaming generation: " + e.getMessage());
+                    return Flux.just(ServerSentEvent.<Model3DVO>builder()
                             .event("error")
                             .data(null)
                             .build());
