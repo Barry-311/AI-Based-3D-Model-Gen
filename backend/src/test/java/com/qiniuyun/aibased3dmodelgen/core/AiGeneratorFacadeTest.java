@@ -1,5 +1,6 @@
 package com.qiniuyun.aibased3dmodelgen.core;
 
+import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorFacade;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
@@ -8,8 +9,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class AiGeneratorFacadeTest {

@@ -19,6 +19,22 @@ public interface AppService {
 
     /**
      * 图片上传
+     * @param multipartFile
+     * @return
      */
-    boolean uploadPicture(MultipartFile multipartFile);
+    String uploadPicture(MultipartFile multipartFile);
+
+
+    /**
+     * 验证图片
+     * @param inputSource
+     */
+    void validPicture(Object inputSource);
+
+    /**
+     * 获取图片类型
+     * @param multipartFile
+     * @return
+     */
+    String getPictureType(MultipartFile multipartFile);
 }

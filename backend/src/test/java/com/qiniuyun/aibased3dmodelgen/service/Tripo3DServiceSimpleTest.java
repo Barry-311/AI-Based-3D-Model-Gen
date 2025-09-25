@@ -320,4 +320,203 @@ class Tripo3DServiceSimpleTest {
                             .then(pollTaskWithLimit(taskId, maxAttempts, currentAttempt + 1));
                 });
     }
+
+    @Test
+    void testImageToModelDiagnosis() {
+        // 跳过测试如果API密钥是默认值
+        if ("your_api_key_here".equals(apiKey) || "tsk_your_actual_api_key_here".equals(apiKey)) {
+            log.info("跳过图片转模型诊断测试 - 使用默认API密钥");
+            return;
+        }
+
+        // 测试多个不同的图片URL和格式
+        String[] testImages = {
+            "https://platform.tripo3d.ai/assets/front-235queJB.jpg", // 官方示例图片
+            "https://aibased3dmodelgen-1345673117.cos.ap-shanghai.myqcloud.com/picture/boat.webp", // 原始测试图片
+        };
+        
+        String[] imageTypes = {
+            "image/jpeg",
+            "image/webp"
+        };
+
+        for (int i = 0; i < testImages.length; i++) {
+            String testImageUrl = testImages[i];
+            String imageType = imageTypes[i];
+            
+            log.info("=== 测试图片 {} ===", i + 1);
+            log.info("图片URL: {}", testImageUrl);
+            log.info("图片类型: {}", imageType);
+
+            try {
+                Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType);
+                
+                ModelGenerateResponse response = result.block(Duration.ofSeconds(30));
+                
+                if (response != null && response.getCode() == 0) {
+                    String taskId = response.getData().getTaskId();
+                    log.info("任务创建成功，任务ID: {}", taskId);
+                    
+                    // 等待一段时间后检查状态
+                    Thread.sleep(5000); // 等待5秒
+                    
+                    Mono<TaskStatusResponse> statusResult = tripo3DService.checkTaskStatus(taskId);
+                    TaskStatusResponse statusResponse = statusResult.block(Duration.ofSeconds(10));
+                    
+                    if (statusResponse != null) {
+                        log.info("任务状态: {}", statusResponse.getData().getStatus());
+                        log.info("任务进度: {}%", statusResponse.getData().getProgress());
+                        log.info("输入参数: {}", statusResponse.getData().getInput());
+                        
+                        if ("failed".equals(statusResponse.getData().getStatus())) {
+                            log.error("❌ 图片 {} 任务失败", i + 1);
+                            log.error("输出信息: {}", statusResponse.getData().getOutput());
+                        } else if ("success".equals(statusResponse.getData().getStatus())) {
+                            log.info("✅ 图片 {} 任务成功", i + 1);
+                            log.info("输出结果: {}", statusResponse.getData().getOutput());
+                        } else {
+                            log.info("⏳ 图片 {} 任务进行中，状态: {}", i + 1, statusResponse.getData().getStatus());
+                        }
+                    }
+                } else {
+                    log.error("❌ 图片 {} API调用失败", i + 1);
+                    if (response != null) {
+                        log.error("错误码: {}, 错误信息: {}", response.getCode(), response.getMessage());
+                    }
+                }
+                
+            } catch (Exception e) {
+                log.error("❌ 图片 {} 测试异常: {}", i + 1, e.getMessage(), e);
+            }
+            
+            log.info("=== 图片 {} 测试完成 ===\n", i + 1);
+        }
+    }
+
+    @Test
+    void testGenerateModelFromImageWithUpload() {
+        // 跳过测试如果API密钥是默认值
+        if ("your_api_key_here".equals(apiKey) || "tsk_your_actual_api_key_here".equals(apiKey)) {
+            log.info("跳过使用上传流程的图片转模型测试 - 使用默认API密钥");
+            return;
+        }
+
+        // 使用官方示例图片
+        String testImageUrl = "https://platform.tripo3d.ai/assets/front-235queJB.jpg";
+        String imageType = "image/jpeg";
+
+        log.info("开始测试使用正确上传流程的图片转模型API调用");
+        log.info("测试图片URL: {}", testImageUrl);
+        log.info("图片类型: {}", imageType);
+
+        Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType);
+
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    log.info("=== 使用上传流程的API响应详情 ===");
+                    log.info("响应码: {}", response.getCode());
+                    log.info("响应消息: {}", response.getMessage());
+                    log.info("完整响应: {}", response);
+                    
+                    if (response.getData() != null) {
+                        log.info("任务ID: {}", response.getData().getTaskId());
+                        log.info("任务数据: {}", response.getData());
+                    }
+                    
+                    // 验证响应
+                    assertNotNull(response, "响应不能为空");
+                    
+                    if (response.getCode() != 0) {
+                        log.error("API调用失败，错误码: {}, 错误信息: {}", response.getCode(), response.getMessage());
+                        fail("API调用失败: " + response.getMessage());
+                    }
+                    
+                    assertEquals(0, response.getCode(), "API调用应该成功，错误信息: " + response.getMessage());
+                    assertNotNull(response.getData(), "响应数据不能为空");
+                    assertNotNull(response.getData().getTaskId(), "任务ID不能为空");
+                    assertTrue(response.getData().getTaskId().length() > 0, "任务ID不能为空字符串");
+                    
+                    log.info("✅ 使用上传流程的图片转模型任务创建成功，任务ID: {}", response.getData().getTaskId());
+                })
+                .expectComplete()
+                .verify(Duration.ofSeconds(60)); // 增加超时时间，因为需要先上传图片
+    }
+
+    @Test
+    void testCompleteImageToModelWorkflowWithUpload() {
+        // 跳过测试如果API密钥是默认值
+        if ("your_api_key_here".equals(apiKey) || "tsk_your_actual_api_key_here".equals(apiKey)) {
+            log.info("跳过使用上传流程的完整图片转模型工作流测试 - 使用默认API密钥");
+            return;
+        }
+
+        // 使用官方示例图片
+        String testImageUrl = "https://platform.tripo3d.ai/assets/front-235queJB.jpg";
+        String imageType = "image/jpeg";
+
+        log.info("开始测试使用上传流程的完整图片转模型工作流");
+        log.info("图片URL: {}", testImageUrl);
+
+        Mono<TaskStatusResponse> completedTaskMono = tripo3DService.generateModelFromImage(testImageUrl, imageType)
+                .doOnNext(response -> {
+                    log.info("图片转模型请求已提交，任务ID: {}", response.getData().getTaskId());
+                    if (response.getCode() != 0) {
+                        throw new RuntimeException("图片转模型请求失败: " + response.getMessage());
+                    }
+                })
+                .flatMap(response -> {
+                    String taskId = response.getData().getTaskId();
+                    // 轮询等待任务完成
+                    return pollTaskWithLimit(taskId, 30); // 最多轮询30次，约15分钟
+                })
+                .timeout(Duration.ofMinutes(20)); // 设置20分钟超时
+
+        StepVerifier.create(completedTaskMono)
+                .expectNextMatches(response -> {
+                    log.info("=== 使用上传流程的图片转模型任务完成 ===");
+                    log.info("最终状态: {}", response.getStatus());
+                    log.info("进度: {}%", response.getProgress());
+                    log.info("完整响应: {}", response);
+
+                    if ("failed".equals(response.getStatus())) {
+                        log.error("❌ 任务失败");
+                        if (response.getData() != null && response.getData().getOutput() != null) {
+                            log.error("失败原因: {}", response.getData().getOutput());
+                        }
+                        return false; // 任务失败
+                    }
+
+                    if (!"success".equals(response.getStatus())) {
+                        log.warn("⚠️ 任务未成功完成，状态: {}", response.getStatus());
+                        return false;
+                    }
+
+                    // 验证任务成功完成
+                    assertEquals("success", response.getStatus(), "任务应该成功完成");
+                    assertEquals(100, response.getProgress(), "进度应该是100%");
+
+                    // 检查输出结果
+                    assertNotNull(response.getData(), "任务数据不能为空");
+                    log.info("任务数据: {}", response.getData());
+
+                    if (response.getData().getOutput() != null) {
+                        log.info("✅ 输出结果: {}", response.getData().getOutput());
+                        
+                        String modelUrl = response.getData().getOutput().getModel();
+                        if (modelUrl != null && !modelUrl.isEmpty()) {
+                            log.info("📦 模型下载URL: {}", modelUrl);
+                        }
+                        
+                        String renderedImageUrl = response.getData().getOutput().getRenderedImage();
+                        if (renderedImageUrl != null && !renderedImageUrl.isEmpty()) {
+                            log.info("🖼️ 渲染图片URL: {}", renderedImageUrl);
+                        }
+                    } else {
+                        log.warn("⚠️ 输出结果为空");
+                    }
+
+                    return true;
+                })
+                .verifyComplete();
+    }
 }

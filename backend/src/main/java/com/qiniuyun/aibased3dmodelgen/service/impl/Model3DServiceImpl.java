@@ -25,7 +25,16 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     private Tripo3DService tripo3DService;
     
     @Override
-    public Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse, String prompt) {
+    public Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse) {
+        return saveOrUpdateModelInternal(taskStatusResponse, null, "文本转模型");
+    }
+    
+    @Override
+    public Model3D saveOrUpdateModelFromImage(TaskStatusResponse taskStatusResponse, String pictureUrl) {
+        return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型");
+    }
+    
+    private Model3D saveOrUpdateModelInternal(TaskStatusResponse taskStatusResponse, String pictureUrl, String defaultPrompt) {
         String taskId = taskStatusResponse.getData().getTaskId();
         
         // 查找现有记录
@@ -37,8 +46,13 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         } else {
             model3D = new Model3D();
             model3D.setTaskId(taskId);
-            model3D.setPrompt(prompt);
+            model3D.setPrompt(defaultPrompt); // 设置默认prompt
             model3D.setCreateTime(LocalDateTime.now());
+            
+            // 如果提供了图片URL，则保存图片URL
+            if (pictureUrl != null && !pictureUrl.isEmpty()) {
+                model3D.setPictureUrl(pictureUrl);
+            }
         }
         
         // 更新状态信息
@@ -116,7 +130,7 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     }
 
     @Override
-    public Model3DVO getAppVO(Model3D model3D) {
+    public Model3DVO getModel3DVO(Model3D model3D) {
         if (model3D == null) {
             return null;
         }

@@ -1,11 +1,12 @@
 package com.qiniuyun.aibased3dmodelgen.controller;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.qiniuyun.aibased3dmodelgen.common.BaseResponse;
 import com.qiniuyun.aibased3dmodelgen.common.ResultUtils;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
-import com.qiniuyun.aibased3dmodelgen.core.AiGeneratorFacade;
+import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorFacade;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
@@ -58,9 +59,9 @@ public class AppController {
      * 上传图片
      */
     @PostMapping("/upload")
-    public BaseResponse<Boolean> uploadPicture(
+    public BaseResponse<String> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile) {
-        boolean result = appService.uploadPicture(multipartFile);
+        String result = appService.uploadPicture(multipartFile);
         return ResultUtils.success(result);
     }
 
@@ -151,7 +152,7 @@ public class AppController {
      * 使用SSE实时推送3D模型生成进度，并保存模型数据
      */
     @PostMapping(value = "/generate-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<Model3DVO>> generateModelWithProgress(
+    public Flux<ServerSentEvent<Model3DVO>> generateModelWithPromptProgress(
             @RequestBody @Valid ModelGenerateStreamRequest request) {
         // 参数校验
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
@@ -166,7 +167,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, prompt);
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse);
                                 
                                 // 如果任务完成，异步下载模型文件
                                 if ("success".equals(statusResponse.getStatus())) {
@@ -177,12 +178,12 @@ public class AppController {
                                 }
                                 
                                 // 转换为VO对象
-                                Model3DVO model3DVO = model3DService.getAppVO(model3D);
+                                Model3DVO model3DVO = model3DService.getModel3DVO(model3D);
                                 return model3DVO;
                             })
                             .takeUntil(model3DVO -> {
                                 String status = model3DVO.getStatus();
-                                return "success".equals(status) || "failed".equals(status) || 
+                                return "success".equals(status) || "failed".equals(status) ||
                                        "banned".equals(status) || "expired".equals(status) || 
                                        "cancelled".equals(status);
                             })
@@ -206,7 +207,7 @@ public class AppController {
      * 使用SSE实时推送3D模型生成进度，并保存模型数据
      */
     @PostMapping(value = "/generate-stream-augmented", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<Model3DVO>> generateAugmentedModelWithProgress(
+    public Flux<ServerSentEvent<Model3DVO>> generateModelWithAugmentedPromptProgress(
             @RequestBody @Valid ModelGenerateStreamRequest request) {
         // 参数校验
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
@@ -224,7 +225,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, augmentedPrompt);
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse);
 
                                 // 如果任务完成，异步下载模型文件
                                 if ("success".equals(statusResponse.getStatus())) {
@@ -235,7 +236,7 @@ public class AppController {
                                 }
 
                                 // 转换为VO对象
-                                Model3DVO model3DVO = model3DService.getAppVO(model3D);
+                                Model3DVO model3DVO = model3DService.getModel3DVO(model3D);
                                 return model3DVO;
                             })
                             .takeUntil(model3DVO -> {
@@ -256,5 +257,93 @@ public class AppController {
                             .data(null)
                             .build());
                 });
+    }
+
+
+    /**
+     * 使用SSE实时推送3D模型生成进度，并保存模型数据
+     */
+    @PostMapping(value = "/generate-stream-image", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<Model3DVO>> generateModelWithImageProgress(
+            @RequestPart("file") MultipartFile picture) {
+        // 参数校验
+        ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        
+        try {
+            // 校验图片
+            appService.validPicture(picture);
+            // 获取图片类型
+            String pictureType = appService.getPictureType(picture);
+            // 上传图片到云存储
+            String uploadedPictureUrl = appService.uploadPicture(picture);
+            
+            log.info("开始图片转模型任务，图片URL: {}, 类型: {}", uploadedPictureUrl, pictureType);
+            
+            // 请求 API 生成模型（现在使用优化后的上传流程）
+            return tripo3DService.generateModelFromImage(uploadedPictureUrl, pictureType)
+                    .flatMapMany(response -> {
+                        String taskId = response.getTaskId();
+                        log.info("图片转模型任务已创建，任务ID: {}", taskId);
+
+                        // 创建轮询流，每5秒检查一次状态
+                        return Flux.interval(Duration.ofSeconds(5))
+                                .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                                .map(statusResponse -> {
+                                    // 保存或更新模型数据，使用专门的图片转模型方法
+                                    Model3D model3D = model3DService.saveOrUpdateModelFromImage(statusResponse, uploadedPictureUrl);
+
+                                    // 如果任务完成，异步下载模型文件
+                                    if ("success".equals(statusResponse.getStatus())) {
+                                        log.info("图片转模型任务完成，任务ID: {}", taskId);
+                                        // 异步下载，不阻塞响应
+                                        Mono.fromRunnable(() -> model3DService.downloadAndSaveModel(model3D))
+                                                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                                .subscribe(
+                                                    null,
+                                                    error -> log.error("模型文件下载失败，任务ID: {}, 错误: {}", taskId, error.getMessage())
+                                                );
+                                    } else if ("failed".equals(statusResponse.getStatus())) {
+                                        log.warn("图片转模型任务失败，任务ID: {}", taskId);
+                                    }
+
+                                    // 转换为VO对象
+                                    return model3DService.getModel3DVO(model3D);
+                                })
+                                .takeUntil(model3DVO -> {
+                                    String status = model3DVO.getStatus();
+                                    return "success".equals(status) || "failed".equals(status) ||
+                                            "banned".equals(status) || "expired".equals(status) ||
+                                            "cancelled".equals(status);
+                                })
+                                .map(model3DVO -> ServerSentEvent.<Model3DVO>builder()
+                                        .data(model3DVO)
+                                        .event("progress")
+                                        .build());
+                    })
+                    .onErrorResume(e -> {
+                        log.error("图片转模型流式生成过程中发生错误: {}", e.getMessage(), e);
+                        // 创建错误响应的VO对象
+                        Model3DVO errorVO = new Model3DVO();
+                        errorVO.setStatus("failed");
+                        errorVO.setProgress(0);
+                        
+                        return Flux.just(ServerSentEvent.<Model3DVO>builder()
+                                .event("error")
+                                .data(errorVO)
+                                .build());
+                    });
+                    
+        } catch (Exception e) {
+            log.error("图片转模型请求处理失败: {}", e.getMessage(), e);
+            // 对于同步异常，返回错误事件
+            Model3DVO errorVO = new Model3DVO();
+            errorVO.setStatus("failed");
+            errorVO.setProgress(0);
+            
+            return Flux.just(ServerSentEvent.<Model3DVO>builder()
+                    .event("error")
+                    .data(errorVO)
+                    .build());
+        }
     }
 }
