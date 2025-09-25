@@ -64,7 +64,7 @@ export default defineMock({
           clearInterval(interval);
           sse.end();
         }
-      }, 300);
+      }, 30);
     }, 1000);
 
     // 监听客户端断开连接的事件，以清理资源

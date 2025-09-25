@@ -1,5 +1,6 @@
 import {
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +12,7 @@ import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { VertexNormalsHelper } from "three/addons/helpers/VertexNormalsHelper.js";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { Bounds, Box, Html, OrbitControls, Text } from "@react-three/drei";
 import { IconDownload, IconLoader2 } from "@tabler/icons-react";
@@ -39,6 +41,8 @@ interface IOBJModelProps {
 interface IGLBModelProps {
   glbUrl: string;
   shouldRenderTexture: boolean;
+  shouldRenderWireframe: boolean;
+  shouldRenderVertextNormals: boolean;
   onLoad?: (details: ModelDetails) => void;
 }
 
@@ -167,23 +171,52 @@ function OBJModel({ objUrl, mtlUrl, renderTexture }: IOBJModelProps) {
   return <primitive object={clonedObj} />;
 }
 
-function GLBModel({ glbUrl, shouldRenderTexture, onLoad }: IGLBModelProps) {
+function GLBModel({
+  glbUrl,
+  shouldRenderTexture,
+  shouldRenderWireframe,
+  shouldRenderVertextNormals,
+  onLoad,
+}: IGLBModelProps) {
   const gltf = useLoader(GLTFLoader, glbUrl);
 
   // 调整后的场景对象
   const [adjustedScene, setAdjustedScene] = useState<THREE.Group | null>(null);
+  const [modelSize, setModelSize] = useState<THREE.Vector3 | null>(null);
 
   // 存储原始材质
   const originalMaterials = useRef(
     new Map<string, THREE.Material | THREE.Material[]>()
   );
 
-  // 创建纯白材质
+  // 创建白色材质
   // PBR 模型使用 MeshStandardMaterial 效果更好
   const whiteMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ color: "white" }),
     []
   );
+
+  // 创建法线辅助对象
+  const normalsHelpers = useMemo(() => {
+    // Always return an array
+    if (!adjustedScene || !modelSize) return [];
+
+    const normalLength = modelSize.length() * 0.01;
+
+    const helpers: VertexNormalsHelper[] = [];
+    adjustedScene.traverse((child) => {
+      // Add a crucial check: ensure the mesh has a geometry with normal attributes
+      if (
+        child instanceof THREE.Mesh &&
+        child.geometry &&
+        child.geometry.attributes.normal
+      ) {
+        // If the mesh is valid, create a helper specifically for it
+        helpers.push(new VertexNormalsHelper(child, normalLength, 0xff0000)); // Green color
+      }
+    });
+    return helpers;
+  }, [adjustedScene]);
 
   useEffect(() => {
     if (gltf.scene) {
@@ -204,6 +237,8 @@ function GLBModel({ glbUrl, shouldRenderTexture, onLoad }: IGLBModelProps) {
       const center = new THREE.Vector3();
       box.getSize(size);
       box.getCenter(center);
+
+      setModelSize(size);
 
       // 计算垂直偏移量，将模型向上移动，使其底部位于 y=0
       const yOffset = -box.min.y;
@@ -230,26 +265,58 @@ function GLBModel({ glbUrl, shouldRenderTexture, onLoad }: IGLBModelProps) {
       adjustedScene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           if (shouldRenderTexture) {
-            // 显示纹理：从 Map 中恢复原始材质
-            child.material =
-              originalMaterials.current.get(child.uuid) || child.material;
+            // 恢复原始材质
+            const originalMat = originalMaterials.current.get(child.uuid);
+            if (originalMat) {
+              child.material = originalMat;
+            }
           } else {
-            // 不显示纹理：应用纯白材质
-            child.material = whiteMaterial;
+            // 应用纯白材质，这里克隆一份以避免修改共享的材质实例
+            child.material = whiteMaterial.clone();
+          }
+
+          // 步骤 2: 独立应用线框属性
+          // 无论当前是什么材质，都根据 shouldRenderWireframe 来设置 wireframe 属性
+          if (Array.isArray(child.material)) {
+            child.material.forEach(
+              (mat) => (mat.wireframe = shouldRenderWireframe)
+            );
+          } else {
+            // 确保 material 不是 undefined
+            if (child.material) {
+              child.material.wireframe = shouldRenderWireframe;
+            }
           }
         }
       });
     }
-  }, [adjustedScene, shouldRenderTexture, whiteMaterial]);
+  }, [
+    adjustedScene,
+    shouldRenderTexture,
+    shouldRenderWireframe,
+    whiteMaterial,
+  ]);
 
   // 在 adjustedScene 准备好后才渲染
-  return adjustedScene ? <primitive object={adjustedScene} /> : null;
+  return adjustedScene ? (
+    <>
+      <primitive object={adjustedScene} />
+      {shouldRenderVertextNormals &&
+        normalsHelpers.map((helper, index) => (
+          <primitive key={index} object={helper} />
+        ))}
+    </>
+  ) : null;
 }
 
 function ModelPlayground() {
   const [shouldRenderTexture, setShouldRenderTexture] = useState(true);
+  const [shouldRenderWireframe, setShouldRenderWireframe] = useState(false);
+  const [shouldRenderVertexNormals, setShouldRenderVertexNormals] =
+    useState(false);
   const [modelDetails, setModelDetails] = useState<ModelDetails | null>(null);
   const [isContextLost, setIsContextLost] = useState(false);
+  const [isInitialFit, setIsInitialFit] = useState(true); // 使 Bounds 只在模型初始加载时进行 fit 操作
 
   const { status, progress, error, pbrModelUrl, renderImageUrl } =
     useGenerationStore();
@@ -261,11 +328,20 @@ function ModelPlayground() {
     return Math.ceil(maxSize * 1.5);
   }, [modelDetails]);
 
+  const handleModelLoad = useCallback((details: ModelDetails) => {
+    setModelDetails(details);
+    setTimeout(() => setIsInitialFit(false), 2000);
+  }, []);
+
   return (
     <>
       {status !== TaskStatus.COMPLETED ? (
         <div className="h-full w-full flex justify-center items-center">
-          {status === TaskStatus.IDLE && <div>开始生成模型</div>}
+          {status === TaskStatus.IDLE && (
+            <div className="text-gray-400 select-none">
+              使用提示词或上传图片开始生成模型
+            </div>
+          )}
           {status === TaskStatus.RUNNING && (
             <div className="w-full flex flex-col items-center gap-10">
               <ModelIcon />
@@ -278,13 +354,33 @@ function ModelPlayground() {
       ) : (
         <div className="h-full w-full flex flex-col">
           <section className="mb-4 flex gap-5 items-center">
-            <span className="flex gap-x-2 items-center">
+            <span className="flex gap-x-3 items-center">
               <Label htmlFor="render-texture">显示纹理</Label>
               <Checkbox
                 id="render-texture"
                 checked={shouldRenderTexture}
                 onCheckedChange={(checked: boolean) =>
                   setShouldRenderTexture(checked)
+                }
+              />
+            </span>
+            <span className="flex gap-x-3 items-center">
+              <Label htmlFor="render-wireframe">显示线框</Label>
+              <Checkbox
+                id="render-wireframe"
+                checked={shouldRenderWireframe}
+                onCheckedChange={(checked: boolean) =>
+                  setShouldRenderWireframe(checked)
+                }
+              />
+            </span>
+            <span className="flex gap-x-3 items-center">
+              <Label htmlFor="render-vertex-normals">显示顶点法线</Label>
+              <Checkbox
+                id="render-vertex-normals"
+                checked={shouldRenderVertexNormals}
+                onCheckedChange={(checked: boolean) =>
+                  setShouldRenderVertexNormals(checked)
                 }
               />
             </span>
@@ -331,13 +427,15 @@ function ModelPlayground() {
                     // mtlUrl="/test_models/windmill/windmill.mtl"
                     renderTexture={renderTexture}
                   /> */}
-                  <Bounds fit clip observe margin={1.2}>
+                  <Bounds fit={isInitialFit} clip observe margin={1.2}>
                     <GLBModel
                       // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
-                      glbUrl="/test_models/cat/cat.glb"
-                      // glbUrl={pbrModelUrl || ""}
+                      // glbUrl="/test_models/cat/cat.glb"
+                      glbUrl={pbrModelUrl || ""}
                       shouldRenderTexture={shouldRenderTexture}
-                      onLoad={setModelDetails}
+                      shouldRenderWireframe={shouldRenderWireframe}
+                      shouldRenderVertextNormals={shouldRenderVertexNormals}
+                      onLoad={handleModelLoad}
                     />
                     {modelDetails && (
                       // 隐形锚点，用于将 Bounds 的焦点拉低
