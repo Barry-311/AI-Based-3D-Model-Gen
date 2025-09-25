@@ -13,7 +13,7 @@ import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { Bounds, Box, Html, OrbitControls, Text } from "@react-three/drei";
-import { IconDownload } from "@tabler/icons-react";
+import { IconDownload, IconLoader2 } from "@tabler/icons-react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
@@ -320,8 +320,7 @@ function ModelPlayground() {
                 <Suspense
                   fallback={
                     <Html center>
-                      {/* <ModelIcon /> */}
-                      <span>正在加载模型...</span>
+                      <IconLoader2 className="animate-spin" />
                     </Html>
                   }
                 >
@@ -335,8 +334,8 @@ function ModelPlayground() {
                   <Bounds fit clip observe margin={1.2}>
                     <GLBModel
                       // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
-                      // glbUrl="/test_models/cat/cat.glb"
-                      glbUrl={pbrModelUrl || ""}
+                      glbUrl="/test_models/cat/cat.glb"
+                      // glbUrl={pbrModelUrl || ""}
                       shouldRenderTexture={shouldRenderTexture}
                       onLoad={setModelDetails}
                     />

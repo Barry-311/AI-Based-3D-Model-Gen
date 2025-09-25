@@ -65,7 +65,7 @@ async function streamModelGeneration({
   try {
     console.log(`[SSE] 正在为提示词发送请求: "${prompt}"`);
 
-    const response = await fetch("/generate-stream-actual", {
+    const response = await fetch("/generate-stream", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
