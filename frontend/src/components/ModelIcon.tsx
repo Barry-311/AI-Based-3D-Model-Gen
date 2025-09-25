@@ -1,15 +1,39 @@
-import "./styles/cube.css";
-
 function ModelIcon() {
+  const CUBE_SIZE = 60;
+  const HALF_SIZE = CUBE_SIZE / 2;
+
+  const faceBaseClass = "absolute w-full h-full border border-[#99a1af]";
+
   return (
-    <div className="loader-container">
-      <div className="cube">
-        <div className="face front"></div>
-        <div className="face back"></div>
-        <div className="face top"></div>
-        <div className="face bottom"></div>
-        <div className="face left"></div>
-        <div className="face right"></div>
+    <div className="flex items-center justify-center [perspective:1000px]">
+      <div
+        className="relative transform-3d animate-rotate-cube"
+        style={{ width: `${CUBE_SIZE}px`, height: `${CUBE_SIZE}px` }}
+      >
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateY(0deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateY(180deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateX(90deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateX(-90deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateY(90deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
+        <div
+          className={faceBaseClass}
+          style={{ transform: `rotateY(-90deg) translateZ(${HALF_SIZE}px)` }}
+        ></div>
       </div>
     </div>
   );

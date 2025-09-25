@@ -2,7 +2,7 @@ import { defineMock, createSSEStream } from "vite-plugin-mock-dev-server";
 
 // const TRIPO_API_KEY = process.env.VITE_TRIPO_KEY;
 // const TRIPO_API_URL = process.env.VITE_TRIPO_URL as string;
-const TRIPO_API_KEY = "tsk_gt3tD_P5bR9hCBQuiIA-RCzFgHBuu8bh_MveTrSQD24";
+const TRIPO_API_KEY = "__PLACEHOLDER__";
 const TRIPO_API_URL = "https://api.tripo3d.ai/v2/openapi/task";
 
 const mapToModel3DVO = (apiResponse, prompt) => {

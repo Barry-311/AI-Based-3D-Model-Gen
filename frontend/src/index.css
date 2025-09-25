@@ -118,3 +118,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+@theme {
+  --animate-rotate-cube: rotate-cube 8s linear infinite;
+  @keyframes rotate-cube {
+    0% {
+      transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+    }
+    100% {
+      transform: rotateX(360deg) rotateY(360deg) rotateZ(0deg);
+    }
+  }
+}

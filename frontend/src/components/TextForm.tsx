@@ -8,8 +8,7 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import BaseForm from "./BaseForm";
-import { useRef } from "react";
-import { streamModelGeneration } from "./testApi";
+import useGenerationStore from "@/stores/generationStore";
 
 function TextForm() {
   const formSchema = z.object({
@@ -22,22 +21,11 @@ function TextForm() {
       }),
   });
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const startGeneration = useGenerationStore((state) => state.startGeneration);
+  const reset = useGenerationStore((state) => state.reset);
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    // 如果存在正在进行的请求，先中止
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    // 为新请求创建一个新的 AbortController
-    abortControllerRef.current = new AbortController();
-
-    console.log("form values: ", values);
-
-    await streamModelGeneration(
-      values.prompt,
-      abortControllerRef.current.signal
-    );
+    startGeneration(values.prompt);
   }
 
   return (
