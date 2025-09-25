@@ -12,16 +12,20 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
-import { Bounds, Box, Html, OrbitControls } from "@react-three/drei";
+import { Bounds, Box, Html, OrbitControls, Text } from "@react-three/drei";
 import { IconDownload } from "@tabler/icons-react";
+import { ErrorBoundary } from "react-error-boundary";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Progress } from "./ui/progress";
 import ModelIcon from "./ModelIcon";
 import DownloadForm from "./DownloadForm";
+import useGenerationStore from "@/stores/generationStore";
+import { TaskStatus } from "@/types/generation";
 
-type modelDetails = {
+type ModelDetails = {
   size: THREE.Vector3;
   center: THREE.Vector3;
 };
@@ -35,7 +39,7 @@ interface IOBJModelProps {
 interface IGLBModelProps {
   glbUrl: string;
   shouldRenderTexture: boolean;
-  onLoad?: (details: modelDetails) => void;
+  onLoad?: (details: ModelDetails) => void;
 }
 
 function GroundPlane({ size = 40 }) {
@@ -62,7 +66,7 @@ function ContextManager({
 }: {
   setContextLost: Dispatch<SetStateAction<boolean>>;
 }) {
-  const { gl } = useThree(); // 获取 renderer
+  const { gl } = useThree();
 
   useEffect(() => {
     const handleContextLost = (event: Event) => {
@@ -74,7 +78,6 @@ function ContextManager({
     const handleContextRestored = () => {
       console.log("WebGL context restored.");
       setContextLost(false);
-      // 在这里可能需要重新初始化一些场景状态
     };
 
     const canvas = gl.domElement;
@@ -94,7 +97,7 @@ function ContextManager({
   return null;
 }
 
-function SceneUpdater({ modelDetails }: { modelDetails: modelDetails | null }) {
+function SceneUpdater({ modelDetails }: { modelDetails: ModelDetails | null }) {
   const { camera } = useThree();
 
   // 更新相机的 far 属性
@@ -112,6 +115,24 @@ function SceneUpdater({ modelDetails }: { modelDetails: modelDetails | null }) {
   }, [modelDetails, camera]);
 
   return null;
+}
+
+function ErrorFallback({ error }: { error: { message: string } }) {
+  return (
+    <mesh position-y={2}>
+      <boxGeometry args={[3, 1, 0.1]} />
+      <meshStandardMaterial color="red" />
+      <Text
+        position-z={0.1}
+        fontSize={0.2}
+        color="white"
+        maxWidth={2.8}
+        textAlign="center"
+      >
+        无法加载模型: {error.message}
+      </Text>
+    </mesh>
+  );
 }
 
 function OBJModel({ objUrl, mtlUrl, renderTexture }: IOBJModelProps) {
@@ -227,8 +248,11 @@ function GLBModel({ glbUrl, shouldRenderTexture, onLoad }: IGLBModelProps) {
 
 function ModelPlayground() {
   const [shouldRenderTexture, setShouldRenderTexture] = useState(true);
-  const [modelDetails, setModelDetails] = useState<modelDetails | null>(null);
+  const [modelDetails, setModelDetails] = useState<ModelDetails | null>(null);
   const [isContextLost, setIsContextLost] = useState(false);
+
+  const { status, progress, error, pbrModelUrl, renderImageUrl } =
+    useGenerationStore();
 
   const groundSize = useMemo(() => {
     if (!modelDetails) return 40; // 默认大小
@@ -238,86 +262,108 @@ function ModelPlayground() {
   }, [modelDetails]);
 
   return (
-    <div className="h-full w-full flex flex-col">
-      <section className="mb-4 flex gap-5 items-center">
-        <span className="flex gap-x-2 items-center">
-          <Label htmlFor="render-texture">显示纹理</Label>
-          <Checkbox
-            id="render-texture"
-            checked={shouldRenderTexture}
-            onCheckedChange={(checked: boolean) => setShouldRenderTexture(checked)}
-          />
-        </span>
-        <span className="ml-[auto] flex gap-x-2">
-          <Popover>
-            <PopoverTrigger>
-              <Button variant="outline">
-                <IconDownload />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent>
-              <DownloadForm />
-            </PopoverContent>
-          </Popover>
-        </span>
-      </section>
-      <div className="w-full h-full relative gap-10 justify-center items-center text-6xl text-gray-400">
-        {isContextLost && (
-          <div className="absolute inset-0 flex flex-col justify-center items-center bg-white z-10">
-            <p className="text-2xl text-gray-500">渲染时发生错误</p>
-          </div>
-        )}
-        <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
-          <color attach="background" args={["#eeeeee"]} />
-          <hemisphereLight args={[0xb1e1ff, 0xb97a20, 2]} />
-          <directionalLight
-            position={[0, 10, 0]}
-            target-position={[-5, 0, 0]}
-            intensity={10}
-          />
-          <GroundPlane size={groundSize} />
-          <Suspense
-            fallback={
-              <Html center>
-                <ModelIcon />
-              </Html>
-            }
-          >
-            {/* <Model
-              objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
-              mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
-              // objUrl="/test_models/windmill/windmill.obj"
-              // mtlUrl="/test_models/windmill/windmill.mtl"
-              renderTexture={renderTexture}
-            /> */}
-            <Bounds fit clip observe margin={1.2}>
-              <GLBModel
-                // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
-                glbUrl="/test_models/cat/cat.glb"
-                shouldRenderTexture={shouldRenderTexture}
-                onLoad={setModelDetails}
+    <>
+      {status !== TaskStatus.COMPLETED ? (
+        <div className="h-full w-full flex justify-center items-center">
+          {status === TaskStatus.IDLE && <div>开始生成模型</div>}
+          {status === TaskStatus.RUNNING && (
+            <div className="w-full flex flex-col items-center gap-10">
+              <ModelIcon />
+              <Progress value={progress} className="w-[60%]" />
+              <span>正在生成...</span>
+            </div>
+          )}
+          {status === TaskStatus.FAILED && <div>生成时发生错误</div>}
+        </div>
+      ) : (
+        <div className="h-full w-full flex flex-col">
+          <section className="mb-4 flex gap-5 items-center">
+            <span className="flex gap-x-2 items-center">
+              <Label htmlFor="render-texture">显示纹理</Label>
+              <Checkbox
+                id="render-texture"
+                checked={shouldRenderTexture}
+                onCheckedChange={(checked: boolean) =>
+                  setShouldRenderTexture(checked)
+                }
               />
-              {modelDetails && (
-                // 隐形锚点，用于将 Bounds 的焦点拉低
-                <Box
-                  position={[
-                    modelDetails.center.x,
-                    -modelDetails.size.y * 2, // 放在负距离处
-                    modelDetails.center.z,
-                  ]}
-                  args={[1, 1, 1]}
+            </span>
+            <span className="ml-[auto] flex gap-x-2">
+              <Popover>
+                <PopoverTrigger>
+                  <Button variant="outline">
+                    <IconDownload />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <DownloadForm />
+                </PopoverContent>
+              </Popover>
+            </span>
+          </section>
+          <div className="w-full h-full relative gap-10 justify-center items-center text-6xl text-gray-400">
+            {isContextLost && (
+              <div className="absolute inset-0 flex flex-col justify-center items-center bg-white z-10">
+                <p className="text-2xl text-gray-500">渲染时发生错误</p>
+              </div>
+            )}
+            <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
+              <color attach="background" args={["#eeeeee"]} />
+              <hemisphereLight args={[0xb1e1ff, 0xb97a20, 2]} />
+              <directionalLight
+                position={[0, 10, 0]}
+                target-position={[-5, 0, 0]}
+                intensity={10}
+              />
+              <GroundPlane size={groundSize} />
+              <ErrorBoundary FallbackComponent={ErrorFallback}>
+                <Suspense
+                  fallback={
+                    <Html center>
+                      {/* <ModelIcon /> */}
+                      <span>正在加载模型...</span>
+                    </Html>
+                  }
                 >
-                  <meshBasicMaterial transparent opacity={0} />
-                </Box>
-              )}
-            </Bounds>
-          </Suspense>
-          <OrbitControls makeDefault />
-          <SceneUpdater modelDetails={modelDetails} />
-          <ContextManager setContextLost={setIsContextLost} />
-        </Canvas>
-      </div>
-    </div>
+                  {/* <Model
+                    objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
+                    mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
+                    // objUrl="/test_models/windmill/windmill.obj"
+                    // mtlUrl="/test_models/windmill/windmill.mtl"
+                    renderTexture={renderTexture}
+                  /> */}
+                  <Bounds fit clip observe margin={1.2}>
+                    <GLBModel
+                      // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
+                      // glbUrl="/test_models/cat/cat.glb"
+                      glbUrl={pbrModelUrl || ""}
+                      shouldRenderTexture={shouldRenderTexture}
+                      onLoad={setModelDetails}
+                    />
+                    {modelDetails && (
+                      // 隐形锚点，用于将 Bounds 的焦点拉低
+                      <Box
+                        position={[
+                          modelDetails.center.x,
+                          -modelDetails.size.y * 2, // 放在负距离处
+                          modelDetails.center.z,
+                        ]}
+                        args={[1, 1, 1]}
+                      >
+                        <meshBasicMaterial transparent opacity={0} />
+                      </Box>
+                    )}
+                  </Bounds>
+                </Suspense>
+              </ErrorBoundary>
+              <OrbitControls makeDefault />
+              <SceneUpdater modelDetails={modelDetails} />
+              <ContextManager setContextLost={setIsContextLost} />
+            </Canvas>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

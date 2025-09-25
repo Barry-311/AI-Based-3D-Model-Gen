@@ -1,13 +1,14 @@
+import type { ResultData } from "@/types/generation";
+
 const apiKey = import.meta.env.VITE_TRIPO_KEY;
 const url = import.meta.env.VITE_TRIPO_URL;
 
 /**
  * SSE 消息解析器
  * 从数据流中提取 "event:" 和 "data:" 字段
- * @param {string} chunk - 从数据流中读取的文本块
- * @returns {Array<{type: string, data: any}>}
+ * @param chunk - 从数据流中读取的文本块
  */
-function parseSSE(chunk: string): Array<{ type: string; data: any; }> {
+function parseSSE(chunk: string): Array<{ type: string; data: any }> {
   const events = [];
   const lines = chunk.split("\n\n");
   for (const line of lines) {
@@ -38,11 +39,29 @@ function parseSSE(chunk: string): Array<{ type: string; data: any; }> {
 }
 
 /**
- * 发送POST请求以生成模型并以流式方式处理响应。
- * @param {string} prompt - 模型生成的提示词。
- * @param {AbortSignal} signal - 用于取消请求的 AbortSignal。
+ * 发送POST请求以生成模型并以流式方式处理响应
+ * @param prompt - 模型生成的提示词
+ * @param signal - 用于取消请求的 AbortSignal
+ * @param onProgress - 进度更新时的回调
+ * @param onComplete - 完成时的回调
+ * @param onAbort - 取消请求时的回调
+ * @param onError - 发生错误时的回调
  */
-async function streamModelGeneration(prompt: string, signal: AbortSignal) {
+async function streamModelGeneration({
+  prompt,
+  signal,
+  onProgress,
+  onComplete,
+  onAbort,
+  onError,
+}: {
+  prompt: string;
+  signal: AbortSignal;
+  onProgress: (data: number) => void;
+  onComplete: (data: ResultData) => void;
+  onAbort: () => void;
+  onError: (error: Error) => void;
+}) {
   try {
     console.log(`[SSE] 正在为提示词发送请求: "${prompt}"`);
 
@@ -78,17 +97,24 @@ async function streamModelGeneration(prompt: string, signal: AbortSignal) {
       const events = parseSSE(value);
       for (const event of events) {
         if (event.type === "progress") {
-          console.log("[SSE] 进度更新:", event.data);
-        } else {
-          console.log(`[SSE] 收到事件 '${event.type}':`, event.data);
+          if (event.data.status === "running") {
+            console.log("[SSE] 进度更新:", event.data);
+            onProgress(event.data.progress);
+          } else if (event.data.status === "success") {
+            console.log(`[SSE] 进度完成:`, event.data);
+            onProgress(event.data.progress);
+            onComplete(event.data);
+          }
         }
       }
     }
   } catch (err: any) {
     if (err.name === "AbortError") {
       console.log("[SSE] 请求已被用户中止。");
+      onAbort();
     } else {
       console.error("[SSE] 处理数据流时发生错误:", err);
+      onError(err as Error);
     }
   }
 }
