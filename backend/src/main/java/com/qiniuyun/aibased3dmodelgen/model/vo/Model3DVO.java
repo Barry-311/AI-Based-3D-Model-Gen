@@ -44,6 +44,11 @@ public class Model3DVO implements Serializable {
     private String renderedImageUrl;
 
     /**
+     * 用户上传的图片 URL
+     */
+    private String pictureUrl;
+
+    /**
      * 文件大小
      */
     private Long fileSize;

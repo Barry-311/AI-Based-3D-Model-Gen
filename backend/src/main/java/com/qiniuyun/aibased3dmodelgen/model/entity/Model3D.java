@@ -54,6 +54,9 @@ public class Model3D implements Serializable {
     @Column("renderedImageUrl")
     private String renderedImageUrl;
 
+    @Column("pictureUrl")
+    private String pictureUrl;
+
     @Column("localModelPath")
     private String localModelPath;
 

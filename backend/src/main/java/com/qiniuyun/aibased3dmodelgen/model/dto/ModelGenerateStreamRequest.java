@@ -5,7 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * 模型生成流请求（用于接口）
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,6 +18,7 @@ public class ModelGenerateStreamRequest {
     @NotBlank(message = "提示词不能为空")
     @Size(max = 1000, message = "提示词长度不能超过1000字符")
     private String prompt;
+
     
     // 未来可扩展的字段
     // private String quality;      // 模型质量：low, medium, high

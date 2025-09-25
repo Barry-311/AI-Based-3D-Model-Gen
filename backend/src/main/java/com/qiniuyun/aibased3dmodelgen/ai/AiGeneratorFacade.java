@@ -1,4 +1,4 @@
-package com.qiniuyun.aibased3dmodelgen.core;
+package com.qiniuyun.aibased3dmodelgen.ai;
 
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorService;
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorServiceFactory;

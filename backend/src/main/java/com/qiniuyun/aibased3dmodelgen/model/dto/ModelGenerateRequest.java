@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 模型生成请求参数（用于请求 API）
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

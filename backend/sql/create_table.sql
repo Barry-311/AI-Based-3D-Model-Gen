@@ -46,3 +46,8 @@ create table if not exists model_3d
     INDEX idx_status (status),
     INDEX idx_createTime (createTime)
 ) comment '3D模型' collate = utf8mb4_unicode_ci;
+
+
+ALTER TABLE model_3d
+    -- 添加新列
+    ADD COLUMN pictureUrl VARCHAR(512) NULL COMMENT '用户上传图片链接';
