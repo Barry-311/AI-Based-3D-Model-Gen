@@ -5,6 +5,7 @@ import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.qiniuyun.aibased3dmodelgen.model.enums.ModelGenTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +43,7 @@ public class Tripo3DService {
      * @return 包含任务ID的响应 Mono
      */
     public Mono<ModelGenerateResponse> generateModelFromText(String prompt) {
-        ModelGenerateRequest requestBody = new ModelGenerateRequest("text_to_model", prompt);
+        ModelGenerateRequest requestBody = new ModelGenerateRequest(ModelGenTypeEnum.TEXT.getValue(), prompt);
 
         return this.webClient.post()
                 .uri("/v2/openapi/task")
@@ -66,7 +67,6 @@ public class Tripo3DService {
      */
     public Mono<String> uploadImage(String imageUrl) {
         log.info("开始上传图片: {}", imageUrl);
-        
         // 首先下载图片
         return this.webClient.get()
                 .uri(imageUrl)
@@ -75,7 +75,6 @@ public class Tripo3DService {
                 .flatMap(imageBytes -> {
                     // 创建multipart请求上传图片
                     MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-
                     // 从URL中提取文件名和扩展名 - 使用final变量
                     final String fileName;
                     if (imageUrl.toLowerCase().contains(".webp")) {
@@ -87,7 +86,6 @@ public class Tripo3DService {
                     } else {
                         fileName = "image.jpg"; // 默认值
                     }
-
                     // 创建文件资源
                     ByteArrayResource imageResource = new ByteArrayResource(imageBytes) {
                         @Override
@@ -154,11 +152,6 @@ public class Tripo3DService {
         requestBody.setFile(fileInfo);
 
         log.info("=== 发起图片转模型请求（使用file_token）===");
-        log.info("文件token: {}", fileToken);
-        log.info("图片类型: {}", imageType);
-        log.info("请求类型: {}", requestBody.getType());
-        log.info("模型版本: {}", requestBody.getModel_version());
-        log.info("完整请求体: {}", requestBody);
 
         return this.webClient.post()
                 .uri("/v2/openapi/task")

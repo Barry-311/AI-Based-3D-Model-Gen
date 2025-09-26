@@ -49,11 +49,6 @@ public class Model3DVO implements Serializable {
     private String pictureUrl;
 
     /**
-     * 文件大小
-     */
-    private Long fileSize;
-
-    /**
      * 创建时间
      */
     private LocalDateTime createTime;

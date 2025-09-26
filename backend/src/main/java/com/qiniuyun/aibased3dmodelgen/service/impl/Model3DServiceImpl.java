@@ -64,8 +64,6 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         if ("success".equals(taskStatusResponse.getStatus()) && 
             taskStatusResponse.getData().getOutput() != null) {
             TaskStatusResponse.Output output = taskStatusResponse.getData().getOutput();
-            model3D.setModelUrl(output.getModel());
-            model3D.setBaseModelUrl(output.getBaseModel());
             model3D.setPbrModelUrl(output.getPbrModel());
             model3D.setRenderedImageUrl(output.getRenderedImage());
         }
@@ -85,10 +83,6 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     @Override
     public void downloadAndSaveModel(Model3D model3D) {
         String modelUrl = model3D.getPbrModelUrl(); // 优先使用PBR模型
-        if (modelUrl == null || modelUrl.isEmpty()) {
-            modelUrl = model3D.getModelUrl(); // 备选普通模型
-        }
-        
         if (modelUrl == null || modelUrl.isEmpty()) {
             log.warn("模型URL为空，无法下载: {}", model3D.getTaskId());
             return;
@@ -115,8 +109,6 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
                     fos.write(modelData);
                     
                     // 更新数据库记录
-                    model3D.setLocalModelPath(modelFile.getAbsolutePath());
-                    model3D.setFileSize((long) modelData.length);
                     model3D.setUpdateTime(LocalDateTime.now());
                     updateById(model3D);
                     

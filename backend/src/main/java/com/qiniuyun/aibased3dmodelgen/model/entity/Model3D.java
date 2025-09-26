@@ -42,12 +42,6 @@ public class Model3D implements Serializable {
     @Column("progress")
     private Integer progress;
 
-    @Column("modelUrl")
-    private String modelUrl;
-
-    @Column("baseModelUrl")
-    private String baseModelUrl;
-
     @Column("pbrModelUrl")
     private String pbrModelUrl;
 
@@ -56,12 +50,6 @@ public class Model3D implements Serializable {
 
     @Column("pictureUrl")
     private String pictureUrl;
-
-    @Column("localModelPath")
-    private String localModelPath;
-
-    @Column("fileSize")
-    private Long fileSize;
 
     @Column("createTime")
     private LocalDateTime createTime;
