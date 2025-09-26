@@ -39,16 +39,16 @@ public class Tripo3DService {
 
     /**
      * 根据提示词发起一个模型生成任务
-     * @param prompt 提示词，例如 "a hamburger"
+     * @param modelGenerateRequest 包含提示词的请求
      * @return 包含任务ID的响应 Mono
      */
-    public Mono<ModelGenerateResponse> generateModelFromText(String prompt) {
-        ModelGenerateRequest requestBody = new ModelGenerateRequest(ModelGenTypeEnum.TEXT.getValue(), prompt);
+    public Mono<ModelGenerateResponse> generateModelFromText(ModelGenerateRequest modelGenerateRequest) {
+        modelGenerateRequest.setType(ModelGenTypeEnum.TEXT.getValue());
 
         return this.webClient.post()
                 .uri("/v2/openapi/task")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                .bodyValue(requestBody)
+                .bodyValue(modelGenerateRequest)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), response -> response.bodyToMono(String.class)
                         .map(errorBody -> {
@@ -133,7 +133,7 @@ public class Tripo3DService {
      * @param imageType 图片类型
      * @return 包含任务ID的响应 Mono
      */
-    public Mono<ModelGenerateResponse> generateModelFromImageToken(String fileToken, String imageType) {
+    public Mono<ModelGenerateResponse> generateModelFromImageToken(String fileToken, String imageType, ImageToModelRequest request) {
         // 验证输入参数
         if (fileToken == null || fileToken.trim().isEmpty()) {
             return Mono.error(new IllegalArgumentException("文件token不能为空"));
@@ -146,10 +146,9 @@ public class Tripo3DService {
         ImageToModelRequest.FileInfo fileInfo = new ImageToModelRequest.FileInfo();
         fileInfo.setFile_token(fileToken.trim());
         fileInfo.setType(imageType.trim());
-
+        request.setType(ModelGenTypeEnum.IMAGE.getValue());
         // 创建图片转模型请求
-        ImageToModelRequest requestBody = new ImageToModelRequest();
-        requestBody.setFile(fileInfo);
+        request.setFile(fileInfo);
 
         log.info("=== 发起图片转模型请求（使用file_token）===");
 
@@ -157,7 +156,7 @@ public class Tripo3DService {
                 .uri("/v2/openapi/task")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                .bodyValue(requestBody)
+                .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), response -> response.bodyToMono(String.class)
                         .map(errorBody -> {
@@ -187,9 +186,9 @@ public class Tripo3DService {
     /**
      * 修改原有的generateModelFromImage方法，使用正确的上传流程
      */
-    public Mono<ModelGenerateResponse> generateModelFromImage(String imageUrl, String imageType) {
+    public Mono<ModelGenerateResponse> generateModelFromImage(String imageUrl, String imageType, ImageToModelRequest requestBody) {
         return uploadImage(imageUrl)
-                .flatMap(fileToken -> generateModelFromImageToken(fileToken, imageType));
+                .flatMap(fileToken -> generateModelFromImageToken(fileToken, imageType, requestBody));
     }
 
     /**

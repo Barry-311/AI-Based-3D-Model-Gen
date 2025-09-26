@@ -1,10 +1,14 @@
 package com.qiniuyun.aibased3dmodelgen.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorFacade;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ImageGenerateStreamRequest;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ImageToModelRequest;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateStreamRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
@@ -16,6 +20,8 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -110,9 +116,10 @@ public class AppController {
             @RequestBody @Valid ModelGenerateStreamRequest modelGenerateStreamRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(modelGenerateStreamRequest == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
-        String prompt = modelGenerateStreamRequest.getPrompt();
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
-        return tripo3DService.generateModelFromText(prompt)
+        return tripo3DService.generateModelFromText(modelGenerateRequest)
                 .flatMapMany(response -> {
                     String taskId = response.getTaskId();
 
@@ -120,8 +127,8 @@ public class AppController {
                     return Flux.interval(Duration.ofSeconds(5))
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
-                                // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, request);
+                                // 保存或更新模型数据，传递用户的实际提示词
+                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, modelGenerateStreamRequest.getPrompt(), request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -137,10 +144,15 @@ public class AppController {
                                     .build());
                 })
                 .onErrorResume(e -> {
-                    log.error("Error in streaming generation: " + e.getMessage());
+                    log.error("文生模型流式生成过程中发生错误: {}", e.getMessage(), e);
+                    // 创建错误响应的VO对象
+                    Model3DVO errorVO = new Model3DVO();
+                    errorVO.setStatus("failed");
+                    errorVO.setProgress(0);
+
                     return Flux.just(ServerSentEvent.<Model3DVO>builder()
                             .event("error")
-                            .data(null)
+                            .data(errorVO)
                             .build());
                 });
     }
@@ -158,8 +170,11 @@ public class AppController {
         String prompt = modelGenerateStreamRequest.getPrompt();
         String augmentedPrompt = aiGeneratorFacade.generatePrompt(1L, prompt, ObjectGenTypeEnum.PBR);
         ThrowUtils.throwIf(augmentedPrompt == null, ErrorCode.SYSTEM_ERROR, "生成增强prompt失败");
+        modelGenerateStreamRequest.setPrompt(augmentedPrompt);
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
-        return tripo3DService.generateModelFromText(prompt)
+        return tripo3DService.generateModelFromText(modelGenerateRequest)
                 .flatMapMany(response -> {
                     String taskId = response.getTaskId();
 
@@ -168,7 +183,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, request);
+                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, augmentedPrompt, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -184,10 +199,15 @@ public class AppController {
                                     .build());
                 })
                 .onErrorResume(e -> {
-                    log.error("Error in streaming generation: " + e.getMessage());
+                    log.error("增强文生模型流式生成过程中发生错误: {}", e.getMessage(), e);
+                    // 创建错误响应的VO对象
+                    Model3DVO errorVO = new Model3DVO();
+                    errorVO.setStatus("failed");
+                    errorVO.setProgress(0);
+
                     return Flux.just(ServerSentEvent.<Model3DVO>builder()
                             .event("error")
-                            .data(null)
+                            .data(errorVO)
                             .build());
                 });
     }
@@ -198,7 +218,8 @@ public class AppController {
      */
     @PostMapping(value = "/generate-stream-image", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Model3DVO>> generateModelWithImageProgress(
-            @RequestPart("file") MultipartFile picture, HttpServletRequest request) {
+            @RequestPart("file") MultipartFile picture, ImageGenerateStreamRequest imageGenerateStreamRequest,
+            HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         // 校验图片
@@ -207,9 +228,13 @@ public class AppController {
         String pictureType = appService.getPictureType(picture);
         // 上传图片到云存储
         String uploadedPictureUrl = appService.uploadPicture(picture);
+
+        ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
+        BeanUtils.copyProperties(imageGenerateStreamRequest, imageToModelRequest);
+
         log.info("开始图片转模型任务，图片URL: {}, 类型: {}", uploadedPictureUrl, pictureType);
         // 请求 API 生成模型（现在使用优化后的上传流程）
-        return tripo3DService.generateModelFromImage(uploadedPictureUrl, pictureType)
+        return tripo3DService.generateModelFromImage(uploadedPictureUrl, pictureType, imageToModelRequest)
                 .flatMapMany(response -> {
                     String taskId = response.getTaskId();
                     log.info("图片转模型任务已创建，任务ID: {}", taskId);

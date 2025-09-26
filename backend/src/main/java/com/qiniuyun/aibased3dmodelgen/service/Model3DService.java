@@ -16,15 +16,11 @@ import java.util.List;
 
 public interface Model3DService extends IService<Model3D> {
     
+
     /**
-     * 保存或更新模型数据
-     * @param taskStatusResponse 任务状态响应
-     * @return 模型实体
+     * 保存或更新模型（文本转模型，带实际提示词）
      */
-    /**
-     * 保存或更新模型（文本转模型）
-     */
-    Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse, HttpServletRequest request);
+    Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, HttpServletRequest request);
     
     /**
      * 保存或更新模型（图片转模型）

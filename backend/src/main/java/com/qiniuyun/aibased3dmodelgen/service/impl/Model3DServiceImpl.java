@@ -37,11 +37,10 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     private UserService userService;
 
     @Override
-    public Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse,
-                                     HttpServletRequest request) {
-        return saveOrUpdateModelInternal(taskStatusResponse, null, "文本转模型", request);
+    public Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, HttpServletRequest request) {
+        return saveOrUpdateModelInternal(taskStatusResponse, null, prompt, request);
     }
-    
+
     @Override
     public Model3D saveOrUpdateModelFromImage(TaskStatusResponse taskStatusResponse, String pictureUrl,
                                               HttpServletRequest request) {

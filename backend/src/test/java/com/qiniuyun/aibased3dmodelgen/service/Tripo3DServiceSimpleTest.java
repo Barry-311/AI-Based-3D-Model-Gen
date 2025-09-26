@@ -1,5 +1,7 @@
 package com.qiniuyun.aibased3dmodelgen.service;
 
+import com.qiniuyun.aibased3dmodelgen.model.dto.ImageToModelRequest;
+import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +58,13 @@ class Tripo3DServiceSimpleTest {
         String prompt = "a simple red cube";
         
         log.info("开始测试API调用 - 生成模型");
-        
-        Mono<ModelGenerateResponse> responseMono = tripo3DService.generateModelFromText(prompt);
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        modelGenerateRequest.setPrompt(prompt);
+        modelGenerateRequest.setStyle("gold");
+        modelGenerateRequest.setTexture(false);
+        modelGenerateRequest.setModel_seed(0);
+        modelGenerateRequest.setTexture_quality("low");
+        Mono<ModelGenerateResponse> responseMono = tripo3DService.generateModelFromText(modelGenerateRequest);
         
         StepVerifier.create(responseMono)
                 .expectNextMatches(response -> {
@@ -88,9 +95,20 @@ class Tripo3DServiceSimpleTest {
         String prompt = "a small wooden chair";
         
         log.info("开始测试API调用 - 完整流程");
-        
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        modelGenerateRequest.setPrompt(prompt);
+        modelGenerateRequest.setModel_seed(11);
+        modelGenerateRequest.setTexture_seed(22);
+        modelGenerateRequest.setTexture_quality("detailed");
+        modelGenerateRequest.setGeometry_quality("detailed");
+        modelGenerateRequest.setStyle("gold");
+        modelGenerateRequest.setTexture(false);
+        modelGenerateRequest.setFace_limit(1000);
+        modelGenerateRequest.setAuto_size(false);
+        modelGenerateRequest.setCompress("");
+
         // 第一步：创建任务
-        Mono<String> taskIdMono = tripo3DService.generateModelFromText(prompt)
+        Mono<String> taskIdMono = tripo3DService.generateModelFromText(modelGenerateRequest)
                 .map(ModelGenerateResponse::getTaskId);
         
         // 第二步：查询任务状态
@@ -123,8 +141,9 @@ class Tripo3DServiceSimpleTest {
     @Test
     void testCompleteModelGenerationWorkflow() {
         String prompt = "A cute cat sitting on a chair";
-        
-        Mono<TaskStatusResponse> completedTaskMono = tripo3DService.generateModelFromText(prompt)
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        modelGenerateRequest.setPrompt(prompt);
+        Mono<TaskStatusResponse> completedTaskMono = tripo3DService.generateModelFromText(modelGenerateRequest)
                 .flatMap(response -> {
                     log.info("模型生成请求已提交，任务ID: {}", response.getTaskId());
                     String taskId = response.getTaskId();
@@ -275,8 +294,9 @@ class Tripo3DServiceSimpleTest {
 
         String prompt = "a simple blue sphere";
         log.info("测试轮询机制");
-
-        Mono<String> taskIdMono = tripo3DService.generateModelFromText(prompt)
+        ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
+        modelGenerateRequest.setPrompt(prompt);
+        Mono<String> taskIdMono = tripo3DService.generateModelFromText(modelGenerateRequest)
                 .map(ModelGenerateResponse::getTaskId);
 
         // 轮询5次，每次间隔3秒
@@ -349,7 +369,18 @@ class Tripo3DServiceSimpleTest {
             log.info("图片类型: {}", imageType);
 
             try {
-                Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType);
+                ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
+                imageToModelRequest.setTexture(false);
+                imageToModelRequest.setTexture_alignment("original_image");
+                imageToModelRequest.setModel_seed(1);
+                imageToModelRequest.setTexture_seed(2);
+                imageToModelRequest.setTexture_quality("standard");
+                imageToModelRequest.setGeometry_quality("standard");
+                imageToModelRequest.setFace_limit(1234);
+                imageToModelRequest.setAuto_size(false);
+                imageToModelRequest.setCompress("");
+
+                Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType, imageToModelRequest);
                 
                 ModelGenerateResponse response = result.block(Duration.ofSeconds(30));
                 
@@ -409,7 +440,18 @@ class Tripo3DServiceSimpleTest {
         log.info("测试图片URL: {}", testImageUrl);
         log.info("图片类型: {}", imageType);
 
-        Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType);
+        ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
+        imageToModelRequest.setTexture(false);
+        imageToModelRequest.setTexture_alignment("original_image");
+        imageToModelRequest.setModel_seed(1);
+        imageToModelRequest.setTexture_seed(2);
+        imageToModelRequest.setTexture_quality("standard");
+        imageToModelRequest.setGeometry_quality("standard");
+        imageToModelRequest.setFace_limit(1234);
+        imageToModelRequest.setAuto_size(false);
+        imageToModelRequest.setCompress("");
+
+        Mono<ModelGenerateResponse> result = tripo3DService.generateModelFromImage(testImageUrl, imageType, imageToModelRequest);
 
         StepVerifier.create(result)
                 .assertNext(response -> {
@@ -457,7 +499,18 @@ class Tripo3DServiceSimpleTest {
         log.info("开始测试使用上传流程的完整图片转模型工作流");
         log.info("图片URL: {}", testImageUrl);
 
-        Mono<TaskStatusResponse> completedTaskMono = tripo3DService.generateModelFromImage(testImageUrl, imageType)
+        ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
+        imageToModelRequest.setTexture(false);
+        imageToModelRequest.setTexture_alignment("original_image");
+        imageToModelRequest.setModel_seed(1);
+        imageToModelRequest.setTexture_seed(2);
+        imageToModelRequest.setTexture_quality("standard");
+        imageToModelRequest.setGeometry_quality("standard");
+        imageToModelRequest.setFace_limit(1234);
+        imageToModelRequest.setAuto_size(false);
+        imageToModelRequest.setCompress("");
+
+        Mono<TaskStatusResponse> completedTaskMono = tripo3DService.generateModelFromImage(testImageUrl, imageType, imageToModelRequest)
                 .doOnNext(response -> {
                     log.info("图片转模型请求已提交，任务ID: {}", response.getData().getTaskId());
                     if (response.getCode() != 0) {
@@ -467,7 +520,7 @@ class Tripo3DServiceSimpleTest {
                 .flatMap(response -> {
                     String taskId = response.getData().getTaskId();
                     // 轮询等待任务完成
-                    return pollTaskWithLimit(taskId, 30); // 最多轮询30次，约15分钟
+                    return pollTaskWithLimit(taskId, 100); // 最多轮询30次，约15分钟
                 })
                 .timeout(Duration.ofMinutes(20)); // 设置20分钟超时
 

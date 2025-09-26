@@ -15,17 +15,66 @@ import lombok.NoArgsConstructor;
 public class ImageToModelRequest {
 
     private String type = ModelGenTypeEnum.IMAGE.getValue(); // 根据文档，固定为 "image_to_model"
-    
-    // 模型版本，可选参数
+
+    /**
+     * 模型版本
+     */
     private String model_version = "v2.5-20250123"; // 默认版本
-    
-    // 图片文件信息
+
+    /**
+     * 启用纹理贴图功能
+     */
+    private boolean texture;
+
+    /**
+     * 纹理对齐方式 original_image, geometry
+     */
+    private String texture_alignment;
+
+    /**
+     * 模型种子
+     */
+    private int model_seed;
+
+    /**
+     * 纹理种子
+     */
+    private int texture_seed;
+
+    /**
+     * 纹理质量：standard, detailed
+     */
+    private String texture_quality;
+
+    /**
+     * 模型质量：standard, detailed
+     */
+    private String geometry_quality;
+
+    /**
+     * 模型风格
+     */
+    private String style;
+
+    /**
+     * 模型最大面数 默认 10000
+     */
+    private int face_limit;
+
+    /**
+     * 自动调整模型大小
+     */
+    private boolean auto_size;
+
+    /**
+     * 模型压缩 空值，geometry
+     */
+    private String compress;
+
+    /**
+     * 图片文件信息
+     */
     private FileInfo file;
-    
-    // 添加缺失的参数
-    private Boolean texture = true; // 是否生成纹理
-    private Boolean pbr = true; // 是否生成PBR材质
-    private String geometry_quality = "standard"; // 几何质量：standard, high
 
     @Data
     @NoArgsConstructor
