@@ -63,6 +63,9 @@ public class Model3D implements Serializable {
     @Column("updateTime")
     private LocalDateTime updateTime;
 
+    @Column("isPublic")
+    private Integer isPublic;
+
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
 }

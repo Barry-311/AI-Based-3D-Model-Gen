@@ -23,5 +23,10 @@ public class Model3DEditRequest implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    /**
+     * 是否公开
+     */
+    private Integer isPublic;
+
     private static final long serialVersionUID = 1L;
 }

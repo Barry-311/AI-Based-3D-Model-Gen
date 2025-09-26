@@ -46,5 +46,10 @@ public class Model3DQueryRequest extends PageRequest implements Serializable {
      */
     private LocalDateTime createTime;
 
+    /**
+     * 是否公开
+     */
+    private Integer isPublic;
+
     private static final long serialVersionUID = 1L;
 }
