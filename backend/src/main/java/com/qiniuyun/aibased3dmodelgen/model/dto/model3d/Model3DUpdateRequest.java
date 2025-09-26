@@ -33,6 +33,26 @@ public class Model3DUpdateRequest implements Serializable {
     private String status;
 
     /**
+     * 进度
+     */
+    private Integer progress;
+
+    /**
+     * PBR 模型 URL
+     */
+    private String pbrModelUrl;
+
+    /**
+     * 渲染图片 URL
+     */
+    private String renderedImageUrl;
+
+    /**
+     * 用户上传的图片 URL
+     */
+    private String pictureUrl;
+
+    /**
      * 用户ID
      */
     private Long userId;
@@ -41,6 +61,11 @@ public class Model3DUpdateRequest implements Serializable {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 
     private static final long serialVersionUID = 1L;
 }

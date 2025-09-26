@@ -10,12 +10,16 @@ import com.qiniuyun.aibased3dmodelgen.constant.UserConstant;
 import com.qiniuyun.aibased3dmodelgen.exception.BusinessException;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
+import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DEditRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DQueryRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DUpdateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
+import com.qiniuyun.aibased3dmodelgen.model.entity.User;
 import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
+import com.qiniuyun.aibased3dmodelgen.service.UserService;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +30,9 @@ public class Model3DController {
 
     @Resource
     private Model3DService model3DService;
+
+    @Resource
+    private UserService userService;
 
     /**
      * 根据 id 获取模型（仅管理员）
@@ -62,11 +69,11 @@ public class Model3DController {
     }
 
     /**
-     * 更新模型
+     * 更新模型（管理员）
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody Model3DUpdateRequest model3DUpdateRequest) {
+    public BaseResponse<Boolean> updateModel3D(@RequestBody Model3DUpdateRequest model3DUpdateRequest) {
         if (model3DUpdateRequest == null || model3DUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -74,6 +81,19 @@ public class Model3DController {
         BeanUtil.copyProperties(model3DUpdateRequest, model3D);
         boolean result = model3DService.updateById(model3D);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新模型（给用户使用）
+     */
+    @PostMapping("/edit")
+    public BaseResponse<Boolean> editModel3D(@RequestBody Model3DEditRequest model3DEditRequest, HttpServletRequest request) {
+        if (model3DEditRequest == null || model3DEditRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        model3DService.editModel3D(model3DEditRequest, loginUser);
         return ResultUtils.success(true);
     }
 

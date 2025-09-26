@@ -2,12 +2,15 @@ package com.qiniuyun.aibased3dmodelgen.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.qiniuyun.aibased3dmodelgen.exception.BusinessException;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
+import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
 import com.qiniuyun.aibased3dmodelgen.mapper.Model3DMapper;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
+import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DEditRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DQueryRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.entity.User;
@@ -17,10 +20,12 @@ import com.qiniuyun.aibased3dmodelgen.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -98,6 +103,24 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         Model3DVO model3DVO = new Model3DVO();
         BeanUtil.copyProperties(model3D, model3DVO);
         return model3DVO;
+    }
+
+    @Override
+    public void editModel3D(Model3DEditRequest model3DEditRequest, User loginUser) {
+        // 在此处将实体类和 DTO 进行转换
+        Model3D model3D = new Model3D();
+        BeanUtils.copyProperties(model3DEditRequest, model3D);
+        // 注意将 list 转为 string
+        model3D.setName(model3DEditRequest.getName());
+        // 设置编辑时间
+        model3D.setUpdateTime(LocalDateTime.now());
+        // 判断是否存在
+        long id = model3DEditRequest.getId();
+        Model3D oldModel3D = this.getById(id);
+        ThrowUtils.throwIf(oldModel3D == null, ErrorCode.NOT_FOUND_ERROR);
+        // 操作数据库
+        boolean result = this.updateById(model3D);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
 
     @Override

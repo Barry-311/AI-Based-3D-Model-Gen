@@ -2,6 +2,7 @@ package com.qiniuyun.aibased3dmodelgen.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DEditRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DQueryRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.user.UserQueryRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
@@ -41,6 +42,13 @@ public interface Model3DService extends IService<Model3D> {
      * @return
      */
     Model3DVO getModel3DVO(Model3D model3D);
+
+    /**
+     * 编辑图片
+     * @param model3DEditRequest
+     * @param loginUser
+     */
+    void editModel3D(Model3DEditRequest model3DEditRequest, User loginUser);
 
     /**
      * 获取模型列表
