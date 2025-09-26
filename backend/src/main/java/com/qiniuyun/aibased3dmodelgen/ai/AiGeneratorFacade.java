@@ -24,12 +24,6 @@ public class AiGeneratorFacade {
     @Resource
     private Tripo3DService tripo3DService;
 
-
-    public Mono<ModelGenerateResponse> generateModelFromAugmentedText(Long appId, String message, ObjectGenTypeEnum objectGenTypeEnum) {
-        String augmentedPrompt = generatePrompt(appId, message, objectGenTypeEnum);
-        return tripo3DService.generateModelFromText(augmentedPrompt);
-    }
-
     public String generatePrompt(Long appId, String message, ObjectGenTypeEnum objectGenTypeEnum) {
         if (objectGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "生成类型不能为空");

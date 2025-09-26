@@ -1,12 +1,11 @@
-package com.qiniuyun.aibased3dmodelgen.model.vo;
+package com.qiniuyun.aibased3dmodelgen.model.dto.model3d;
 
 import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-
 @Data
-public class Model3DVO implements Serializable {
+public class Model3DUpdateRequest implements Serializable {
 
     /**
      * id
@@ -62,6 +61,11 @@ public class Model3DVO implements Serializable {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 
     /**
      * 是否公开

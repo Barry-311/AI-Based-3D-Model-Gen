@@ -33,6 +33,9 @@ public class Model3D implements Serializable {
     @Column("taskId")
     private String taskId;
 
+    @Column("name")
+    private String name;
+
     @Column("prompt")
     private String prompt;
 
@@ -41,12 +44,6 @@ public class Model3D implements Serializable {
 
     @Column("progress")
     private Integer progress;
-
-    @Column("modelUrl")
-    private String modelUrl;
-
-    @Column("baseModelUrl")
-    private String baseModelUrl;
 
     @Column("pbrModelUrl")
     private String pbrModelUrl;
@@ -57,17 +54,17 @@ public class Model3D implements Serializable {
     @Column("pictureUrl")
     private String pictureUrl;
 
-    @Column("localModelPath")
-    private String localModelPath;
-
-    @Column("fileSize")
-    private Long fileSize;
+    @Column("userId")
+    private Long userId;
 
     @Column("createTime")
     private LocalDateTime createTime;
 
     @Column("updateTime")
     private LocalDateTime updateTime;
+
+    @Column("isPublic")
+    private Integer isPublic;
 
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;

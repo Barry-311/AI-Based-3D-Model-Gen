@@ -5,6 +5,7 @@ import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateResponse;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.qiniuyun.aibased3dmodelgen.model.enums.ModelGenTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,16 +39,16 @@ public class Tripo3DService {
 
     /**
      * 根据提示词发起一个模型生成任务
-     * @param prompt 提示词，例如 "a hamburger"
+     * @param modelGenerateRequest 包含提示词的请求
      * @return 包含任务ID的响应 Mono
      */
-    public Mono<ModelGenerateResponse> generateModelFromText(String prompt) {
-        ModelGenerateRequest requestBody = new ModelGenerateRequest("text_to_model", prompt);
+    public Mono<ModelGenerateResponse> generateModelFromText(ModelGenerateRequest modelGenerateRequest) {
+        modelGenerateRequest.setType(ModelGenTypeEnum.TEXT.getValue());
 
         return this.webClient.post()
                 .uri("/v2/openapi/task")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                .bodyValue(requestBody)
+                .bodyValue(modelGenerateRequest)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), response -> response.bodyToMono(String.class)
                         .map(errorBody -> {
@@ -66,7 +67,6 @@ public class Tripo3DService {
      */
     public Mono<String> uploadImage(String imageUrl) {
         log.info("开始上传图片: {}", imageUrl);
-        
         // 首先下载图片
         return this.webClient.get()
                 .uri(imageUrl)
@@ -75,7 +75,6 @@ public class Tripo3DService {
                 .flatMap(imageBytes -> {
                     // 创建multipart请求上传图片
                     MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-
                     // 从URL中提取文件名和扩展名 - 使用final变量
                     final String fileName;
                     if (imageUrl.toLowerCase().contains(".webp")) {
@@ -87,7 +86,6 @@ public class Tripo3DService {
                     } else {
                         fileName = "image.jpg"; // 默认值
                     }
-
                     // 创建文件资源
                     ByteArrayResource imageResource = new ByteArrayResource(imageBytes) {
                         @Override
@@ -135,7 +133,7 @@ public class Tripo3DService {
      * @param imageType 图片类型
      * @return 包含任务ID的响应 Mono
      */
-    public Mono<ModelGenerateResponse> generateModelFromImageToken(String fileToken, String imageType) {
+    public Mono<ModelGenerateResponse> generateModelFromImageToken(String fileToken, String imageType, ImageToModelRequest request) {
         // 验证输入参数
         if (fileToken == null || fileToken.trim().isEmpty()) {
             return Mono.error(new IllegalArgumentException("文件token不能为空"));
@@ -148,23 +146,17 @@ public class Tripo3DService {
         ImageToModelRequest.FileInfo fileInfo = new ImageToModelRequest.FileInfo();
         fileInfo.setFile_token(fileToken.trim());
         fileInfo.setType(imageType.trim());
-
+        request.setType(ModelGenTypeEnum.IMAGE.getValue());
         // 创建图片转模型请求
-        ImageToModelRequest requestBody = new ImageToModelRequest();
-        requestBody.setFile(fileInfo);
+        request.setFile(fileInfo);
 
         log.info("=== 发起图片转模型请求（使用file_token）===");
-        log.info("文件token: {}", fileToken);
-        log.info("图片类型: {}", imageType);
-        log.info("请求类型: {}", requestBody.getType());
-        log.info("模型版本: {}", requestBody.getModel_version());
-        log.info("完整请求体: {}", requestBody);
 
         return this.webClient.post()
                 .uri("/v2/openapi/task")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                .bodyValue(requestBody)
+                .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), response -> response.bodyToMono(String.class)
                         .map(errorBody -> {
@@ -194,9 +186,9 @@ public class Tripo3DService {
     /**
      * 修改原有的generateModelFromImage方法，使用正确的上传流程
      */
-    public Mono<ModelGenerateResponse> generateModelFromImage(String imageUrl, String imageType) {
+    public Mono<ModelGenerateResponse> generateModelFromImage(String imageUrl, String imageType, ImageToModelRequest requestBody) {
         return uploadImage(imageUrl)
-                .flatMap(fileToken -> generateModelFromImageToken(fileToken, imageType));
+                .flatMap(fileToken -> generateModelFromImageToken(fileToken, imageType, requestBody));
     }
 
     /**
