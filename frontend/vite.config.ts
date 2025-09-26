@@ -14,16 +14,24 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": {
-        target: "https://api.tripo3d.ai",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
+      // "/api": {
+      //   target: "https://api.tripo3d.ai",
+      //   changeOrigin: true,
+      //   rewrite: (path) => path.replace(/^\/api/, ""),
+      // },
       "/generate-stream": {
         target: "http://localhost:5173",
         changeOrigin: true,
       },
       "/generate-stream-actual": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
+      "/generate-stream-image": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
+      "/generate-stream-image-actual": {
         target: "http://localhost:5173",
         changeOrigin: true,
       },

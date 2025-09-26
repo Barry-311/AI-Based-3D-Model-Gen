@@ -1,18 +1,19 @@
 import { defineMock, createSSEStream } from "vite-plugin-mock-dev-server";
+import { readFile } from "fs/promises";
 import { TRIPO_KEY } from "./mock.key";
 
-// const TRIPO_API_KEY = process.env.VITE_TRIPO_KEY;
-// const TRIPO_API_URL = process.env.VITE_TRIPO_URL as string;
 const TRIPO_API_KEY = TRIPO_KEY;
 const TRIPO_API_URL = "https://api.tripo3d.ai/v2/openapi/task";
+const TRIPO_UPLOAD_URL = "https://api.tripo3d.ai/v2/openapi/upload/sts";
 
-const mapToModel3DVO = (apiResponse, prompt) => {
+// 将模拟的API响应映射为前端需要的VO (Value Object)
+const mapImageTaskToModel3DVO = (apiResponse, originalFilename) => {
   return {
-    id: Date.now(), // Mock a database ID
+    id: Date.now(), // 模拟一个数据库ID
     taskId: apiResponse.task_id,
-    prompt: prompt,
     status: apiResponse.status,
     progress: apiResponse.progress,
+    originalImageUrl: apiResponse.original_image_url || null,
     pbrModelUrl: apiResponse.output?.pbr_model || null,
     renderedImageUrl: apiResponse.output?.rendered_image || null,
     fileSize: apiResponse.output?.pbr_model_size || null,
@@ -22,14 +23,27 @@ const mapToModel3DVO = (apiResponse, prompt) => {
 };
 
 export default defineMock({
-  url: "/generate-stream-actual",
+  url: "/generate-stream-image-actual",
   method: "POST",
   response: async (req, res) => {
-    const { prompt } = req.body;
+    const body: any = req.body;
+    const fileField = body?.file;
+    const file = Array.isArray(fileField) ? fileField[0] : fileField;
+
     const sse = createSSEStream(req, res);
 
-    console.log("TRIPO_API_KEY: ", TRIPO_API_KEY)
-    console.log("TRIPO_API_URL: ", TRIPO_API_URL)
+    console.log("fileField", fileField);
+    console.log("file", file);
+
+    if (!file || !file.filepath) {
+      console.error("错误：未上传文件");
+      sse.write({
+        event: "error",
+        data: JSON.stringify({ message: "错误：未上传文件" }),
+      });
+      sse.end();
+      return;
+    }
 
     if (!TRIPO_API_KEY) {
       console.error(
@@ -43,17 +57,54 @@ export default defineMock({
       return;
     }
 
-    let pollingInterval;
+    let pollingInterval: NodeJS.Timeout;
 
     // 客户端断开连接时，停止轮询
     req.on("close", () => {
-      console.log("客户端已断开连接，停止轮询。");
+      console.log("Client disconnected, stopping polling for image task.");
       clearInterval(pollingInterval);
     });
 
     try {
-      // 步骤 1: 调用 Tripo3D API 创建任务
-      console.log(`[Tripo3D] 正在为提示词创建任务: "${prompt}"`);
+      console.log(`[Tripo3D] 正在从路径读取文件: ${file.filepath}`);
+      const fileBuffer = await readFile(file.filepath);
+
+      console.log(`[Tripo3D] 准备上传图片: "${file.originalFilename}"`);
+      const uploadFormData = new FormData();
+
+      // 从读取到的 buffer 创建 Blob
+      const fileBlob = new Blob([fileBuffer], { type: file.mimetype });
+      uploadFormData.append("file", fileBlob, file.originalFilename);
+
+      const uploadResponse = await fetch(TRIPO_UPLOAD_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${TRIPO_API_KEY}`,
+        },
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorBody = await uploadResponse.text();
+        // 尝试解析JSON以获得更详细的错误信息
+        try {
+            const errorJson = JSON.parse(errorBody);
+            throw new Error(`上传图片失败: ${uploadResponse.status} - ${errorJson.message || errorBody}`);
+        } catch {
+            throw new Error(`上传图片失败: ${uploadResponse.status} ${errorBody}`);
+        }
+      }
+
+      const uploadJson = await uploadResponse.json();
+      const imageToken = uploadJson.data?.image_token;
+
+      if (!imageToken) {
+        throw new Error("从上传响应中未能获取 image_token");
+      }
+      console.log(`[Tripo3D] 图片上传成功, image_token: ${imageToken}`);
+
+      // 步骤 1: 模拟调用外部API创建任务
+      console.log(`[Tripo3D] 正在为图片创建任务: "${imageToken}"`);
       const createTaskResponse = await fetch(TRIPO_API_URL, {
         method: "POST",
         headers: {
@@ -61,8 +112,10 @@ export default defineMock({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: "text_to_model",
-          prompt: prompt,
+          type: "image_to_model",
+          file: {
+            file_token: imageToken,
+          },
         }),
       });
 
@@ -94,7 +147,7 @@ export default defineMock({
 
           const json = await pollResponse.json();
           const taskStatus = json.data;
-          const frontendData = mapToModel3DVO(taskStatus, prompt);
+          const frontendData = mapImageTaskToModel3DVO(taskStatus, file.originalFilename);
 
           // 步骤 3: 将轮询结果通过 SSE 推送给前端
           sse.write({
@@ -117,7 +170,9 @@ export default defineMock({
           ];
           if (finalizedStates.includes(taskStatus.status)) {
             console.log(`[Tripo3D] 任务已完成，最终状态: ${taskStatus.status}`);
-            console.log(`[Tripo3D] 模型 URL: ${taskStatus.output["pbr_model"]}`);
+            console.log(
+              `[Tripo3D] 模型 URL: ${taskStatus.output["pbr_model"]}`
+            );
             clearInterval(pollingInterval);
             sse.end();
           }
@@ -132,7 +187,7 @@ export default defineMock({
         }
       }, 3000); // 每 3 秒轮询一次
     } catch (error) {
-      console.error("调用 Tripo3D API 时发生错误:", error);
+      console.error("Error simulating API call:", error);
       sse.write({
         event: "error",
         data: JSON.stringify({ message: error.message }),
