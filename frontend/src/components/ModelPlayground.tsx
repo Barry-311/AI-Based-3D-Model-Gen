@@ -431,6 +431,7 @@ function ModelPlayground() {
                     <GLBModel
                       // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
                       // glbUrl="/test_models/cat/cat.glb"
+                      // glbUrl="https://tripo-data.rg1.data.tripo3d.com/tcli_a288f685fd084ea3b13edb08445376e2/20250926/8e1a29df-9ef8-408a-ae17-0f5c1955a3ba/tripo_pbr_model_8e1a29df-9ef8-408a-ae17-0f5c1955a3ba.glb?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYTI4OGY2ODVmZDA4NGVhM2IxM2VkYjA4NDQ1Mzc2ZTIvMjAyNTA5MjYvOGUxYTI5ZGYtOWVmOC00MDhhLWFlMTctMGY1YzE5NTVhM2JhL3RyaXBvX3Bicl9tb2RlbF84ZTFhMjlkZi05ZWY4LTQwOGEtYWUxNy0wZjVjMTk1NWEzYmEuZ2xiIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzU4OTMxMjAwfX19XX0_&Signature=Aw2wNxAi8QxFuiFoHvrSjfXF~mHvw00n7fT3NjIhaLBUujHhHey4hrcaHGoQYmYPltuamRrVayIUdNtvbILiR-k1tHPnhwOZKE~fQpv9szyfKLNDV3slqYfd6NpSHGkU-UChCunxPc5RJ4qrHPlQBsWJJm4ELPGzftgWEyRzHYjwiXh9sS4sS4a273KgnChRTvAGGaBTN6LGiJd~aYTTHXaCJDRqEbecH-wA0AUJd7nevvWoIRv5Yu818432ircxq-xydIE1Vu2km-Bl8K~TU3bqy2EQlCQQtSJ9ypQzvH6JDdyDmWikzDCgfptQIW-6e1n3AwfMZGtvr4ARue6mNQ__&Key-Pair-Id=K1676C64NMVM2J"
                       glbUrl={pbrModelUrl || ""}
                       shouldRenderTexture={shouldRenderTexture}
                       shouldRenderWireframe={shouldRenderWireframe}

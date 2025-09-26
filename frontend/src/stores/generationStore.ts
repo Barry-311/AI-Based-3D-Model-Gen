@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import { streamModelGeneration } from "@/components/testApi";
+import { streamTextToModel, streamImageToModel } from "@/api/testApi";
 import {
   TaskStatus,
-  type ProgressData,
   type ResultData,
+  type StreamCallbacks,
 } from "@/types/generation";
 
 type GenerationState = {
@@ -13,12 +13,68 @@ type GenerationState = {
   error: string | null;
   pbrModelUrl: string | null;
   renderImageUrl: string | null;
-}
+};
 
 type GenerationActions = {
-  startGeneration: (prompt: string) => Promise<void>;
+  // startGeneration: (prompt: string) => Promise<void>;
+  startTextGeneration: (prompt: string) => Promise<void>;
+  startImageGeneration: (file: File) => Promise<void>;
   reset: () => void;
   cleanup: () => void;
+};
+
+async function handleGeneration(
+  set: (state: Partial<GenerationState>) => void,
+  get: () => GenerationState & GenerationActions,
+  generationFn: (
+    signal: AbortSignal,
+    callbacks: StreamCallbacks
+  ) => Promise<void>
+) {
+  if (get().status === TaskStatus.RUNNING) {
+    console.warn("[Zustand] A generation task is already in progress.");
+    return;
+  }
+
+  get().reset(); // 开始前重置状态
+  const controller = new AbortController();
+  set({
+    abortController: controller,
+    status: TaskStatus.RUNNING,
+    progress: 0,
+  });
+
+  const callbacks = {
+    onProgress: (progress: number) => set({ progress }),
+    onComplete: (data: ResultData) => {
+      set({
+        status: TaskStatus.COMPLETED,
+        pbrModelUrl: data.pbrModelUrl,
+        renderImageUrl: data.renderImageUrl,
+        progress: 100,
+      });
+      get().cleanup();
+    },
+    onAbort: () => console.log("[Zustand] Store detected abort."),
+    onError: (error: Error) => {
+      set({
+        status: TaskStatus.FAILED,
+        error: error.message || "[Zustand] An unknown error occurred",
+      });
+      get().cleanup();
+    },
+  };
+
+  try {
+    await generationFn(controller.signal, callbacks);
+  } catch (err: unknown) {
+    const error =
+      err instanceof Error
+        ? err
+        : new Error("[Zustand] An unexpected error occurred");
+    set({ status: TaskStatus.FAILED, error: error.message });
+    get().cleanup();
+  }
 }
 
 const useGenerationStore = create<GenerationState & GenerationActions>()(
@@ -30,59 +86,16 @@ const useGenerationStore = create<GenerationState & GenerationActions>()(
     pbrModelUrl: null,
     renderImageUrl: null,
 
-    startGeneration: async (prompt: string) => {
-      if (get().status === TaskStatus.RUNNING) {
-        console.warn("[Zustand] Generation is already in progress.");
-        return;
-      }
+    startTextGeneration: async (prompt: string) => {
+      await handleGeneration(set, get, (signal, callbacks) =>
+        streamTextToModel(prompt, signal, callbacks)
+      );
+    },
 
-      get().reset();
-      const controller = new AbortController();
-      set({
-        abortController: controller,
-        status: TaskStatus.RUNNING,
-        progress: 0,
-      });
-
-      try {
-        await streamModelGeneration({
-          prompt,
-          signal: controller.signal,
-          onProgress: (progress: number) => {
-            set({ progress: progress });
-          },
-          onComplete: (data: ResultData) => {
-            console.log("===data===", data)
-            set({
-              status: TaskStatus.COMPLETED,
-              pbrModelUrl: data.pbrModelUrl,
-              renderImageUrl: data.renderImageUrl,
-              progress: 100,
-            });
-            get().cleanup();
-          },
-          onAbort: () => {
-            console.log("[Zustand] Store detected abort.");
-          },
-          onError: (error: Error) => {
-            set({
-              status: TaskStatus.FAILED,
-              error: error.message || "[Zustand] An unknown error occurred",
-            });
-            get().cleanup();
-          },
-        });
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          set({ status: TaskStatus.FAILED, error: err.message });
-        } else {
-          set({
-            status: TaskStatus.FAILED,
-            error: "[Zustand] An unexpected error occurred",
-          });
-        }
-        get().cleanup();
-      }
+    startImageGeneration: async (file: File) => {
+      await handleGeneration(set, get, (signal, callbacks) =>
+        streamImageToModel(file, signal, callbacks)
+      );
     },
 
     reset: () => {

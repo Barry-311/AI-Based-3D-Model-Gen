@@ -21,11 +21,11 @@ function TextForm() {
       }),
   });
 
-  const startGeneration = useGenerationStore((state) => state.startGeneration);
+  const startTextGeneration = useGenerationStore((state) => state.startTextGeneration);
   const reset = useGenerationStore((state) => state.reset);
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    startGeneration(values.prompt);
+    await startTextGeneration(values.prompt);
   }
 
   return (

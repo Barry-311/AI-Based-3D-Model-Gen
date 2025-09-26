@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import type { ControllerRenderProps } from "react-hook-form";
 import BaseForm from "./BaseForm";
+import useGenerationStore from "@/stores/generationStore";
 
 // 允许的的图片MIME类型
 const ACCEPTED_IMAGE_TYPES = [
@@ -22,6 +23,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 最大文件大小 (10MB)
 
 function ImageForm() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  const startImageGeneration = useGenerationStore((state) => state.startImageGeneration);
 
   useEffect(() => {
     // 当 previewUrl 改变或组件卸载时清理旧的 URL
@@ -65,8 +68,7 @@ function ImageForm() {
   }
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log(values);
+    await startImageGeneration(values.image);
   }
 
   return (

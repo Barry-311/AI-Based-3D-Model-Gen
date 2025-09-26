@@ -28,3 +28,4 @@ src/services/
 .env
 API_doc.md
 openapi.json
+mock/mock.key.ts
