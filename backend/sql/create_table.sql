@@ -30,6 +30,7 @@ create table if not exists model_3d
 (
     id              bigint auto_increment comment 'id' primary key,
     taskId         varchar(256)                       not null comment 'Tripo3D任务ID',
+    name           varchar(256)                       not null comment '模型名称',
     prompt          text                               not null comment '生成提示词',
     status          varchar(50)                        not null comment '任务状态',
     progress        int          default 0             not null comment '生成进度',
@@ -47,3 +48,13 @@ create table if not exists model_3d
 ALTER TABLE model_3d
     -- 添加新列
     ADD COLUMN pictureUrl VARCHAR(512) NULL COMMENT '用户上传图片链接';
+
+ALTER TABLE model_3d
+    -- 添加新列
+    ADD INDEX idx_name (name);
+
+-- 添加userId字段绑定用户
+ALTER TABLE model_3d
+    ADD COLUMN userId BIGINT NULL COMMENT '用户ID',
+    ADD INDEX idx_userId (userId),
+    ADD CONSTRAINT fk_model3d_user FOREIGN KEY (userId) REFERENCES user(id) ON DELETE SET NULL;

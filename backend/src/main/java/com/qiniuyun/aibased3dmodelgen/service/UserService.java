@@ -26,6 +26,11 @@ public interface UserService extends IService<User> {
      */
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
+    /**
+     * 获取加密密码
+     * @param userPassword
+     * @return
+     */
     String getEncryptPassword(String userPassword);
 
     /**
@@ -61,10 +66,25 @@ public interface UserService extends IService<User> {
      */
     boolean userLogout(HttpServletRequest request);
 
+    /**
+     * 获取用户信息
+     * @param user
+     * @return
+     */
     UserVO getUserVO(User user);
 
+    /**
+     * 获取用户列表
+     * @param userList
+     * @return
+     */
     List<UserVO> getUserVOList(List<User> userList);
 
+    /**
+     * 获取用户查询条件
+     * @param userQueryRequest
+     * @return
+     */
     QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest);
 
 }

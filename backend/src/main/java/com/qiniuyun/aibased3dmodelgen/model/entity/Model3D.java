@@ -33,6 +33,9 @@ public class Model3D implements Serializable {
     @Column("taskId")
     private String taskId;
 
+    @Column("name")
+    private String name;
+
     @Column("prompt")
     private String prompt;
 
@@ -50,6 +53,9 @@ public class Model3D implements Serializable {
 
     @Column("pictureUrl")
     private String pictureUrl;
+
+    @Column("userId")
+    private Long userId;
 
     @Column("createTime")
     private LocalDateTime createTime;

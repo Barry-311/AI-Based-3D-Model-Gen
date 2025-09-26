@@ -1,51 +1,63 @@
 package com.qiniuyun.aibased3dmodelgen.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.qiniuyun.aibased3dmodelgen.exception.BusinessException;
+import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.mapper.Model3DMapper;
 import com.qiniuyun.aibased3dmodelgen.model.dto.TaskStatusResponse;
+import com.qiniuyun.aibased3dmodelgen.model.dto.model3d.Model3DQueryRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
+import com.qiniuyun.aibased3dmodelgen.model.entity.User;
 import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
-import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
+import com.qiniuyun.aibased3dmodelgen.service.UserService;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> implements Model3DService {
-    
-    @Autowired
-    private Tripo3DService tripo3DService;
-    
+
+    @Resource
+    private UserService userService;
+
     @Override
-    public Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse) {
-        return saveOrUpdateModelInternal(taskStatusResponse, null, "文本转模型");
+    public Model3D saveOrUpdateModel(TaskStatusResponse taskStatusResponse,
+                                     HttpServletRequest request) {
+        return saveOrUpdateModelInternal(taskStatusResponse, null, "文本转模型", request);
     }
     
     @Override
-    public Model3D saveOrUpdateModelFromImage(TaskStatusResponse taskStatusResponse, String pictureUrl) {
-        return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型");
+    public Model3D saveOrUpdateModelFromImage(TaskStatusResponse taskStatusResponse, String pictureUrl,
+                                              HttpServletRequest request) {
+        return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型", request);
     }
     
-    private Model3D saveOrUpdateModelInternal(TaskStatusResponse taskStatusResponse, String pictureUrl, String defaultPrompt) {
+    private Model3D saveOrUpdateModelInternal(TaskStatusResponse taskStatusResponse, String pictureUrl,
+                                              String defaultPrompt, HttpServletRequest request) {
         String taskId = taskStatusResponse.getData().getTaskId();
-        
         // 查找现有记录
         Model3D existingModel = getByTaskId(taskId);
-        
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
         Model3D model3D;
         if (existingModel != null) {
             model3D = existingModel;
         } else {
             model3D = new Model3D();
             model3D.setTaskId(taskId);
+            model3D.setUserId(loginUser.getId());
+            model3D.setName("model3D_" + taskId);
             model3D.setPrompt(defaultPrompt); // 设置默认prompt
             model3D.setCreateTime(LocalDateTime.now());
             
@@ -54,7 +66,6 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
                 model3D.setPictureUrl(pictureUrl);
             }
         }
-        
         // 更新状态信息
         model3D.setStatus(taskStatusResponse.getStatus());
         model3D.setProgress(taskStatusResponse.getProgress());
@@ -67,10 +78,8 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
             model3D.setPbrModelUrl(output.getPbrModel());
             model3D.setRenderedImageUrl(output.getRenderedImage());
         }
-        
         // 保存或更新
         saveOrUpdate(model3D);
-        
         return model3D;
     }
     
@@ -79,47 +88,7 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         // 使用字符串字段名而不是TableDef
         return getOne(QueryWrapper.create().eq("taskId", taskId));
     }
-    
-    @Override
-    public void downloadAndSaveModel(Model3D model3D) {
-        String modelUrl = model3D.getPbrModelUrl(); // 优先使用PBR模型
-        if (modelUrl == null || modelUrl.isEmpty()) {
-            log.warn("模型URL为空，无法下载: {}", model3D.getTaskId());
-            return;
-        }
-        
-        try {
-            log.info("开始下载模型文件: {}", modelUrl);
-            
-            // 下载模型文件
-            byte[] modelData = tripo3DService.downloadModel(modelUrl).block();
-            
-            if (modelData != null && modelData.length > 0) {
-                // 创建保存目录 - 修改为 tmp/object_output
-                File saveDir = new File("tmp/object_output");
-                if (!saveDir.exists()) {
-                    saveDir.mkdirs();
-                }
-                
-                // 保存文件 - 修改文件名格式为 "model3D_" + taskId
-                String fileName = "model3D_" + model3D.getTaskId() + ".glb";
-                File modelFile = new File(saveDir, fileName);
-                
-                try (FileOutputStream fos = new FileOutputStream(modelFile)) {
-                    fos.write(modelData);
-                    
-                    // 更新数据库记录
-                    model3D.setUpdateTime(LocalDateTime.now());
-                    updateById(model3D);
-                    
-                    log.info("模型文件下载并保存成功: {}, 大小: {} KB", 
-                            modelFile.getAbsolutePath(), modelData.length / 1024);
-                }
-            }
-        } catch (Exception e) {
-            log.error("下载模型文件失败: {}", model3D.getTaskId(), e);
-        }
-    }
+
 
     @Override
     public Model3DVO getModel3DVO(Model3D model3D) {
@@ -130,4 +99,42 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
         BeanUtil.copyProperties(model3D, model3DVO);
         return model3DVO;
     }
+
+    @Override
+    public List<Model3DVO> getModel3DVOList(List<Model3D> model3dList) {
+        if (CollUtil.isEmpty(model3dList)) {
+            return new ArrayList<>();
+        }
+        return model3dList.stream().map(this::getModel3DVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryWrapper getQueryWrapper(Model3DQueryRequest model3DQueryRequest) {
+        if (model3DQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = model3DQueryRequest.getId();
+        String taskId = model3DQueryRequest.getTaskId();
+        String name = model3DQueryRequest.getName();
+        String prompt = model3DQueryRequest.getPrompt();
+        String status = model3DQueryRequest.getStatus();
+        Long userId = model3DQueryRequest.getUserId();
+        LocalDateTime createTime = model3DQueryRequest.getCreateTime();
+        String sortField = model3DQueryRequest.getSortField();
+        String sortOrder = model3DQueryRequest.getSortOrder();
+
+        return QueryWrapper.create()
+                .eq("id", id)
+                .eq("taskId", taskId)
+                .like("name", name)
+                .like("prompt", prompt)
+                .eq("status", status)
+                .eq("userId", userId)
+                .ge("createTime", createTime)
+                .orderBy(sortField, "ascend".equals(sortOrder));
+    }
+
+
+
+
 }

@@ -13,6 +13,7 @@ import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
 import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -106,10 +107,10 @@ public class AppController {
      */
     @PostMapping(value = "/generate-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Model3DVO>> generateModelWithPromptProgress(
-            @RequestBody @Valid ModelGenerateStreamRequest request) {
+            @RequestBody @Valid ModelGenerateStreamRequest modelGenerateStreamRequest, HttpServletRequest request) {
         // 参数校验
-        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
-        String prompt = request.getPrompt();
+        ThrowUtils.throwIf(modelGenerateStreamRequest == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        String prompt = modelGenerateStreamRequest.getPrompt();
 
         return tripo3DService.generateModelFromText(prompt)
                 .flatMapMany(response -> {
@@ -120,7 +121,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse);
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -150,11 +151,11 @@ public class AppController {
      */
     @PostMapping(value = "/generate-stream-augmented", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Model3DVO>> generateModelWithAugmentedPromptProgress(
-            @RequestBody @Valid ModelGenerateStreamRequest request) {
+            @RequestBody @Valid ModelGenerateStreamRequest modelGenerateStreamRequest, HttpServletRequest request) {
         // 参数校验
-        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        ThrowUtils.throwIf(modelGenerateStreamRequest == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         // 使用增强的 prompt
-        String prompt = request.getPrompt();
+        String prompt = modelGenerateStreamRequest.getPrompt();
         String augmentedPrompt = aiGeneratorFacade.generatePrompt(1L, prompt, ObjectGenTypeEnum.PBR);
         ThrowUtils.throwIf(augmentedPrompt == null, ErrorCode.SYSTEM_ERROR, "生成增强prompt失败");
 
@@ -167,7 +168,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse);
+                                Model3D model3D = model3DService.saveOrUpdateModel(statusResponse, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -197,7 +198,7 @@ public class AppController {
      */
     @PostMapping(value = "/generate-stream-image", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Model3DVO>> generateModelWithImageProgress(
-            @RequestPart("file") MultipartFile picture) {
+            @RequestPart("file") MultipartFile picture, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         // 校验图片
@@ -217,7 +218,7 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据，使用专门的图片转模型方法
-                                Model3D model3D = model3DService.saveOrUpdateModelFromImage(statusResponse, uploadedPictureUrl);
+                                Model3D model3D = model3DService.saveOrUpdateModelFromImage(statusResponse, uploadedPictureUrl, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })

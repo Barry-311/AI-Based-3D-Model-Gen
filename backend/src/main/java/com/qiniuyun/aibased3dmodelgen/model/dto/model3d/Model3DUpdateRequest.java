@@ -1,12 +1,11 @@
-package com.qiniuyun.aibased3dmodelgen.model.vo;
+package com.qiniuyun.aibased3dmodelgen.model.dto.model3d;
 
 import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-
 @Data
-public class Model3DVO implements Serializable {
+public class Model3DUpdateRequest implements Serializable {
 
     /**
      * id
@@ -32,26 +31,6 @@ public class Model3DVO implements Serializable {
      * 状态
      */
     private String status;
-
-    /**
-     * 进度
-     */
-    private Integer progress;
-
-    /**
-     * PBR 模型 URL
-     */
-    private String pbrModelUrl;
-
-    /**
-     * 渲染图片 URL
-     */
-    private String renderedImageUrl;
-
-    /**
-     * 用户上传的图片 URL
-     */
-    private String pictureUrl;
 
     /**
      * 用户ID
