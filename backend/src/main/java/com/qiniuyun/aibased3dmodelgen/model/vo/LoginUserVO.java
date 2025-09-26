@@ -6,47 +6,37 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-public class Model3DVO implements Serializable {
+public class LoginUserVO implements Serializable {
 
     /**
-     * id
+     * 用户 id
      */
     private Long id;
 
     /**
-     * Tripo3D 任务 ID
+     * 账号
      */
-    private String taskId;
+    private String userAccount;
 
     /**
-     * 提示词
+     * 用户昵称
      */
-    private String prompt;
+    private String userName;
 
     /**
-     * 状态
+     * 用户头像
      */
-    private String status;
+    private String userAvatar;
 
     /**
-     * 进度
+     * 用户简介
      */
-    private Integer progress;
+    private String userProfile;
 
     /**
-     * PBR 模型 URL
+     * 用户角色：user/admin
      */
-    private String pbrModelUrl;
-
-    /**
-     * 渲染图片 URL
-     */
-    private String renderedImageUrl;
-
-    /**
-     * 用户上传的图片 URL
-     */
-    private String pictureUrl;
+    private String userRole;
 
     /**
      * 创建时间
