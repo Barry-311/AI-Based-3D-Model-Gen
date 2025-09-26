@@ -35,6 +35,18 @@ export default defineConfig({
         target: "http://localhost:5173",
         changeOrigin: true,
       },
+      "/api/user/register": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
+      "/api/user/login": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
+      "/api/user/logout": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
     },
   },
 });
