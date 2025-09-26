@@ -11,7 +11,6 @@ import {
   FormMessage,
 } from "./ui/form";
 import useUserStore from "@/stores/userStore";
-import { login } from "@/api/userApi";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 
@@ -34,16 +33,13 @@ export function LoginForm({
 
   async function handleSubmit(data: z.infer<typeof loginSchema>) {
     try {
-      // 只需调用 store 的 action，所有复杂逻辑都在 store 内部！
       await login({
         userAccount: data.username,
         userPassword: data.password,
       });
 
       toast.success("登录成功！");
-      // 登录成功后，UI 会因为 store 中 isAuthenticated 的变化而自动更新
     } catch (error) {
-      // store 中抛出的错误在这里被捕获
       if (error instanceof Error) {
         form.setError("root.serverError", {
           type: "manual",
