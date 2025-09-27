@@ -19,6 +19,9 @@ async function login(data: LoginRequest) {
 async function logout() {
   return fetchApi<boolean>(apiConfig.userLogout, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
   });
 }
 

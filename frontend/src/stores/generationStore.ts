@@ -4,6 +4,8 @@ import {
   TaskStatus,
   type ResultData,
   type StreamCallbacks,
+  type StreamImageRequest,
+  type StreamRequest,
 } from "@/types/generation";
 
 type GenerationState = {
@@ -16,9 +18,8 @@ type GenerationState = {
 };
 
 type GenerationActions = {
-  // startGeneration: (prompt: string) => Promise<void>;
-  startTextGeneration: (prompt: string) => Promise<void>;
-  startImageGeneration: (file: File) => Promise<void>;
+  startTextGeneration: (req: StreamRequest) => Promise<void>;
+  startImageGeneration: (req: StreamImageRequest) => Promise<void>;
   reset: () => void;
   cleanup: () => void;
 };
@@ -86,15 +87,15 @@ const useGenerationStore = create<GenerationState & GenerationActions>()(
     pbrModelUrl: null,
     renderImageUrl: null,
 
-    startTextGeneration: async (prompt: string) => {
+    startTextGeneration: async (req: StreamRequest, augmented = false) => {
       await handleGeneration(set, get, (signal, callbacks) =>
-        streamTextToModel(prompt, signal, callbacks)
+        streamTextToModel(req, augmented, signal, callbacks)
       );
     },
 
-    startImageGeneration: async (file: File) => {
+    startImageGeneration: async (req: StreamImageRequest) => {
       await handleGeneration(set, get, (signal, callbacks) =>
-        streamImageToModel(file, signal, callbacks)
+        streamImageToModel(req, signal, callbacks)
       );
     },
 

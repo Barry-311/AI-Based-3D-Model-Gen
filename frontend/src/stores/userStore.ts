@@ -46,6 +46,7 @@ const useUserStore = create<UserState>()(
           await logout();
           // 登出成功，清空 user 状态
           set({ user: null, isAuthenticated: false });
+          useUserStore.persist.clearStorage();
         } catch (error) {
           console.error("退出失败:", error);
           throw error;

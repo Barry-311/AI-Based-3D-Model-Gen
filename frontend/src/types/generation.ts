@@ -16,6 +16,21 @@ export type ProgressData = {
   progress: number;
 };
 
+export type StreamRequest = {
+  prompt: string;
+  texture: boolean;
+  textureQuality: "standard" | "detailed";
+  geometryQuality:"standard" | "detailed";
+}
+
+export type StreamImageRequest = {
+  file: File;
+  texture: boolean;
+  textureQuality: "standard" | "detailed";
+  geometryQuality:"standard" | "detailed";
+  style: string;
+}
+
 export type ResultData = {
   id: number;
   taskId: string;
