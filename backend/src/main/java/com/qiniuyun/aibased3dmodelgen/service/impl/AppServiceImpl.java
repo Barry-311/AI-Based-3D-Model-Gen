@@ -7,6 +7,7 @@ import com.qiniuyun.aibased3dmodelgen.exception.BusinessException;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
 import com.qiniuyun.aibased3dmodelgen.manager.CosManager;
+import com.qiniuyun.aibased3dmodelgen.model.enums.UploadFileTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
@@ -41,30 +42,68 @@ public class AppServiceImpl implements AppService {
         return aiGeneratorFacade.generatePromptStream(appId, message, objectGenTypeEnum);
     }
 
+    // 处理用户直接上传的场景
     @Override
-    public String uploadPicture(MultipartFile multipartFile) {
+    public String uploadFile(MultipartFile multipartFile, UploadFileTypeEnum uploadFileTypeEnum) {
         String filename = multipartFile.getOriginalFilename();
-        String filepath = String.format("/picture/%s", filename);
         File file = null;
         try {
-            // 上传文件
-            file = File.createTempFile(filepath, null);
+            // 创建临时文件
+            file = File.createTempFile("upload_", "_" + filename);
             multipartFile.transferTo(file);
-            // 返回可访问的地址
-            return cosManager.uploadFile(filepath, file);
+            // 调用我们新的、基于File的上传方法
+            return uploadFile(file, filename, uploadFileTypeEnum);
         } catch (Exception e) {
-            log.error("file upload error, filepath = {}", filepath, e);
+            log.error("MultipartFile upload error, filename = {}", filename, e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
         } finally {
+            // 确保临时文件被删除
             if (file != null) {
-                // 删除临时文件
-                boolean isDelete = file.delete();
-                if (!isDelete) {
-                    log.error("file delete error, filepath = {}", filepath);
-                }
+                deleteTempFile(file);
             }
         }
     }
+
+    /**
+     * 重载方法，用于上传本地File对象到COS
+     * @param file 要上传的本地文件
+     * @param originalFilename 希望在COS中保存的文件名
+     * @param uploadFileTypeEnum 文件类型，决定COS中的存储路径
+     * @return 上传到COS后的可访问URL
+     */
+    @Override
+    public String uploadFile(File file, String originalFilename, UploadFileTypeEnum uploadFileTypeEnum) {
+        String filepath;
+        switch (uploadFileTypeEnum) {
+            case USER_UPLOADED -> filepath = String.format("/picture/%s", originalFilename);
+            case RENDERED_IMAGE -> filepath = String.format("/rendered_image/%s", originalFilename);
+            case PBR_MODEL -> filepath = String.format("/pbr_model/%s", originalFilename);
+            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件类型错误");
+        }
+        try {
+            // 直接使用已有的File对象上传到COS
+            log.info("开始上传文件到COS，路径: {}", filepath);
+            String cosUrl = cosManager.uploadFile(filepath, file);
+            log.info("文件成功上传到COS，URL: {}", cosUrl);
+            return cosUrl;
+        } catch (Exception e) {
+            log.error("COS upload error, filepath = {}", filepath, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传到对象存储失败");
+        }
+    }
+
+    /**
+     * 辅助方法，用于安全删除文件
+     */
+    private void deleteTempFile(File file) {
+        if (file != null && file.exists()) {
+            boolean isDelete = file.delete();
+            if (!isDelete) {
+                log.error("临时文件删除失败, filepath = {}", file.getAbsolutePath());
+            }
+        }
+    }
+
 
     @Override
     public void validPicture(Object inputSource) {

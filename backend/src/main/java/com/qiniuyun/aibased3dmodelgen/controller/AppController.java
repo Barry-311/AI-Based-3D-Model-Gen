@@ -1,6 +1,5 @@
 package com.qiniuyun.aibased3dmodelgen.controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorFacade;
@@ -11,6 +10,7 @@ import com.qiniuyun.aibased3dmodelgen.model.dto.ImageToModelRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateRequest;
 import com.qiniuyun.aibased3dmodelgen.model.dto.ModelGenerateStreamRequest;
 import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
+import com.qiniuyun.aibased3dmodelgen.model.enums.UploadFileTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.model.enums.ObjectGenTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.AppService;
@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -128,7 +127,8 @@ public class AppController {
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
                             .map(statusResponse -> {
                                 // 保存或更新模型数据，传递用户的实际提示词
-                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, modelGenerateStreamRequest.getPrompt(), request);
+                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse,
+                                        modelGenerateStreamRequest.getPrompt(), request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -227,7 +227,8 @@ public class AppController {
         // 获取图片类型
         String pictureType = appService.getPictureType(picture);
         // 上传图片到云存储
-        String uploadedPictureUrl = appService.uploadPicture(picture);
+        UploadFileTypeEnum imageType = UploadFileTypeEnum.USER_UPLOADED;
+        String uploadedPictureUrl = appService.uploadFile(picture, imageType);
 
         ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
         BeanUtils.copyProperties(imageGenerateStreamRequest, imageToModelRequest);

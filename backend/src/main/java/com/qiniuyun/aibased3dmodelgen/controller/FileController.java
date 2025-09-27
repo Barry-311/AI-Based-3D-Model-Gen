@@ -5,6 +5,7 @@ import com.qiniuyun.aibased3dmodelgen.common.ResultUtils;
 import com.qiniuyun.aibased3dmodelgen.constant.ObjectConstant;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
+import com.qiniuyun.aibased3dmodelgen.model.enums.UploadFileTypeEnum;
 import com.qiniuyun.aibased3dmodelgen.service.AppService;
 import com.qiniuyun.aibased3dmodelgen.service.ObjectDownloadService;
 import jakarta.annotation.Resource;
@@ -30,11 +31,12 @@ public class FileController {
      * 上传图片
      */
     @PostMapping("/upload")
-    public BaseResponse<String> uploadPicture(
+    public BaseResponse<String> uploadFile(
             @RequestPart("file") MultipartFile multipartFile) {
         ThrowUtils.throwIf(multipartFile == null, ErrorCode.PARAMS_ERROR, "上传文件为空");
         appService.validPicture(multipartFile);
-        String result = appService.uploadPicture(multipartFile);
+        UploadFileTypeEnum uploadFileTypeEnum = UploadFileTypeEnum.RENDERED_IMAGE;
+        String result = appService.uploadFile(multipartFile, uploadFileTypeEnum);
         return ResultUtils.success(result);
     }
 

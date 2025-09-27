@@ -77,3 +77,5 @@ create table if not exists user_feedback
     INDEX idx_userId (userId),
     INDEX idx_feedbackType (feedbackType)
 ) comment '用户反馈表' collate = utf8mb4_unicode_ci;
+
+

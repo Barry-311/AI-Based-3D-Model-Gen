@@ -2,7 +2,6 @@ package com.qiniuyun.aibased3dmodelgen.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.qiniuyun.aibased3dmodelgen.exception.BusinessException;
@@ -16,16 +15,18 @@ import com.qiniuyun.aibased3dmodelgen.model.entity.Model3D;
 import com.qiniuyun.aibased3dmodelgen.model.entity.User;
 import com.qiniuyun.aibased3dmodelgen.model.vo.Model3DVO;
 import com.qiniuyun.aibased3dmodelgen.service.Model3DService;
+import com.qiniuyun.aibased3dmodelgen.service.Tripo3DService;
 import com.qiniuyun.aibased3dmodelgen.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,9 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private Tripo3DService tripo3DService;
 
     @Override
     public Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, HttpServletRequest request) {
@@ -46,15 +50,14 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
                                               HttpServletRequest request) {
         return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型", request);
     }
-    
+
     private Model3D saveOrUpdateModelInternal(TaskStatusResponse taskStatusResponse, String pictureUrl,
-                                              String defaultPrompt, HttpServletRequest request) {
+                                              String prompt, HttpServletRequest request) {
         String taskId = taskStatusResponse.getData().getTaskId();
-        // 查找现有记录
         Model3D existingModel = getByTaskId(taskId);
-        // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         Model3D model3D;
+
         if (existingModel != null) {
             model3D = existingModel;
         } else {
@@ -62,27 +65,48 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
             model3D.setTaskId(taskId);
             model3D.setUserId(loginUser.getId());
             model3D.setName("model3D_" + taskId);
-            model3D.setPrompt(defaultPrompt); // 设置默认prompt
+            model3D.setPrompt(prompt);
             model3D.setCreateTime(LocalDateTime.now());
-            
-            // 如果提供了图片URL，则保存图片URL
-            if (pictureUrl != null && !pictureUrl.isEmpty()) {
+            if (StringUtils.isNotBlank(pictureUrl)) {
                 model3D.setPictureUrl(pictureUrl);
             }
         }
-        // 更新状态信息
+
         model3D.setStatus(taskStatusResponse.getStatus());
         model3D.setProgress(taskStatusResponse.getProgress());
         model3D.setUpdateTime(LocalDateTime.now());
-        
-        // 如果任务完成，保存URL信息
-        if ("success".equals(taskStatusResponse.getStatus()) && 
-            taskStatusResponse.getData().getOutput() != null) {
-            TaskStatusResponse.Output output = taskStatusResponse.getData().getOutput();
-            model3D.setPbrModelUrl(output.getPbrModel());
-            model3D.setRenderedImageUrl(output.getRenderedImage());
+
+        // 如果任务完成，并且我们还没有处理过文件（通过检查URL字段是否为空来防止重复执行）
+        if ("success".equals(taskStatusResponse.getStatus()) &&
+                StringUtils.isBlank(model3D.getPbrModelUrl()) && // 关键：防止重复处理
+                taskStatusResponse.getData() != null &&
+                taskStatusResponse.getData().getOutput() != null) {
+
+            try {
+                log.info("任务 {} 已成功，开始下载和上传模型资源.", taskId);
+                TaskStatusResponse.Output output = taskStatusResponse.getData().getOutput();
+
+                // 获取临时的下载URL
+                String tempRenderedImageUrl = output.getRenderedImage();
+                String tempPbrModelUrl = output.getPbrModel();
+
+                // 调用TripoService的组合方法，完成下载和上传
+                Tripo3DService.AssetUrls finalUrls = tripo3DService.downloadAndUploadAssets(tempRenderedImageUrl, tempPbrModelUrl);
+
+                // 将返回的最终COS URL设置到模型对象中
+                model3D.setPbrModelUrl(finalUrls.getModelUrl());
+                model3D.setRenderedImageUrl(finalUrls.getImageUrl());
+                log.info("模型资源已成功上传到COS并准备更新数据库记录，任务ID: {}", taskId);
+
+            } catch (Exception e) {
+                // 如果在下载或上传过程中发生异常
+                log.error("处理成功的任务资源时失败，任务ID: {}", taskId, e);
+                // 更新状态，以便前端或运维知晓
+                model3D.setStatus("processing_failed");
+            }
         }
-        // 保存或更新
+
+        // 统一在这里执行保存或更新操作
         saveOrUpdate(model3D);
         return model3D;
     }
