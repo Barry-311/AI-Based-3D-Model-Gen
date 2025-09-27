@@ -11,7 +11,7 @@ import java.util.Map;
 public class MyBatisCodeGenerator {
 
     // 需要生成的表名
-    private static final String[] TABLE_NAMES = {"user"};
+    private static final String[] TABLE_NAMES = {"user_feedback"};
 
     public static void main(String[] args) {
         // 获取数据源信息
@@ -63,9 +63,6 @@ public class MyBatisCodeGenerator {
         // 设置生成 service
         globalConfig.enableService();
         globalConfig.enableServiceImpl();
-
-        // 设置生成 controller
-        globalConfig.enableController();
 
         // 设置生成时间和字符串为空，避免多余的代码改动
         globalConfig.getJavadocConfig()
