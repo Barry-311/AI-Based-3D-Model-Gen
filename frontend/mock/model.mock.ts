@@ -21,7 +21,7 @@ for (let i = 0; i < TOTAL_MODELS; i++) {
     pbrModelUrl: "/test_models/dog/dog.glb",
     // 使用 picsum.photos 生成随机图片，通过 random 参数避免浏览器缓存
     renderedImageUrl: `https://picsum.photos/500/500?random=${id}`,
-    pictureUrl: `https://picsum.photos/500/500?random=${id}`,
+    pictureUrl: "",
     // 模拟 10 个不同的用户
     userId: 1000 + (i % 10),
     // 从今天开始，每天往前推一天，模拟真实创建时间
@@ -39,20 +39,43 @@ export default defineMock([
     // 使用 response 函数动态处理分页逻辑
     response: (req, res) => {
       // 从请求体中获取分页参数
-      const { pageNum = 1, pageSize = 10 } = req.body as ModelPagedRequest;
+      const {
+        pageNum = 1,
+        pageSize = 10,
+        sortField = "createTime", // 默认排序字段
+        sortOrder = "descend", // 默认排序顺序
+      } = req.body as ModelPagedRequest & {
+        sortField?: string;
+        sortOrder?: "ascend" | "descend";
+      };
 
       console.log(
         `[Mock] 接收到请求: pageNum=${pageNum}, pageSize=${pageSize}`
       );
 
-      // 计算分页逻辑
-      const totalRow = allModels.length;
+      let sortedData = [...allModels];
+
+      if (sortField) {
+        sortedData.sort((a, b) => {
+          const valA = a[sortField];
+          const valB = b[sortField];
+
+          if (valA < valB) {
+            return sortOrder === "ascend" ? -1 : 1;
+          }
+          if (valA > valB) {
+            return sortOrder === "ascend" ? 1 : -1;
+          }
+          return 0;
+        });
+      }
+
+      const totalRow = sortedData.length;
       const totalPage = Math.ceil(totalRow / pageSize);
       const startIndex = (pageNum - 1) * pageSize;
       const endIndex = startIndex + pageSize;
 
-      // 使用 slice 模拟数据库分页查询
-      const records = allModels.slice(startIndex, endIndex);
+      const records = sortedData.slice(startIndex, endIndex);
 
       // 模拟 1000ms 的网络延迟
       setTimeout(() => {

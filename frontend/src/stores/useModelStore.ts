@@ -4,17 +4,21 @@ import type { Model } from "@/types/model";
 
 const PAGE_SIZE = 18;
 
+type SortOrder = "descend" | "ascend";
+
 interface ModelStoreState {
   models: Model[];
   page: number;
   hasMore: boolean;
   isLoading: boolean;
   error: Error | null;
+  sortOrder: SortOrder;
 }
 
 interface ModelStoreActions {
   fetchModels: () => Promise<void>;
   reset: () => void;
+  setSortOrder: (order: SortOrder) => void;
 }
 
 export const useModelStore = create<ModelStoreState & ModelStoreActions>(
@@ -24,6 +28,7 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
     hasMore: true,
     isLoading: false,
     error: null,
+    sortOrder: "descend",
 
     fetchModels: async () => {
       if (get().isLoading || !get().hasMore) return;
@@ -37,7 +42,7 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
           pageNum: currentPage,
           pageSize: PAGE_SIZE,
           sortField: "createTime",
-          sortOrder: "descend",
+          sortOrder: get().sortOrder,
         });
 
         const newModels = response.data.records || [];
@@ -54,6 +59,10 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
         set({ isLoading: false, error: error as Error });
         throw error;
       }
+    },
+
+    setSortOrder: (order: SortOrder) => {
+      set({ sortOrder: order });
     },
 
     reset: () => {
