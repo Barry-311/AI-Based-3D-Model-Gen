@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { streamTextToModel, streamImageToModel } from "@/api/testApi";
+import { streamTextToModel, streamImageToModel } from "@/api/generationApi";
 import {
   TaskStatus,
   type ResultData,

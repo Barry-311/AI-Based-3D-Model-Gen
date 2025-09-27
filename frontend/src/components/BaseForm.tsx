@@ -1,6 +1,10 @@
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { useForm, type SubmitHandler, type UseFormReturn } from "react-hook-form";
+import {
+  useForm,
+  type SubmitHandler,
+  type UseFormReturn,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z, ZodType } from "zod";
 import { cn } from "@/lib/utils";
@@ -15,6 +19,7 @@ interface IBaseForm<T extends ZodType<any, any>> {
   };
   defaultValues?: z.infer<T>;
   className?: string;
+  submitButtonClassName?: string;
 }
 
 /**
@@ -25,6 +30,7 @@ interface IBaseForm<T extends ZodType<any, any>> {
  * @param submitButtonText - 提交按钮的文本
  * @param defaultValues - 表单的默认值
  * @param className - Tailwind 类名
+ * @param submitButtonClassName - Tailwind 类名
  */
 function BaseForm<T extends ZodType<any, any>>({
   schema,
@@ -33,6 +39,7 @@ function BaseForm<T extends ZodType<any, any>>({
   submitButtonText,
   defaultValues,
   className,
+  submitButtonClassName,
 }: IBaseForm<T>) {
   type FormValues = z.infer<T>;
 
@@ -48,7 +55,11 @@ function BaseForm<T extends ZodType<any, any>>({
         className={cn("space-y-8", className)}
       >
         {children(form)}
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className={cn(submitButtonClassName)}
+        >
           {form.formState.isSubmitting
             ? submitButtonText.submitting
             : submitButtonText.default}
