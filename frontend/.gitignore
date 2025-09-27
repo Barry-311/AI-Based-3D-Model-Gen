@@ -23,4 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-public/windmill/
+public/test_models/
+src/services/
+.env
+apidocs/
+openapi.json
+mock/mock.key.ts
