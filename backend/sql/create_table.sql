@@ -61,3 +61,19 @@ ALTER TABLE model_3d
 ALTER TABLE model_3d
     -- 添加新列
     ADD COLUMN isPublic BOOLEAN DEFAULT FALSE NOT NULL COMMENT '是否公开';
+
+-- 用户反馈表
+create table if not exists user_feedback
+(
+    id              bigint auto_increment comment 'id' primary key,
+    userId          bigint                             not null comment '用户ID',
+    feedbackType    varchar(50)                        not null comment '反馈类型：model_quality(模型质量), user_experience(用户体验), feature_request(功能建议), bug_report(问题反馈)',
+    rating          int                                null comment '评分(1-5分)',
+    title           varchar(256)                       null comment '反馈标题',
+    content         text                               not null comment '反馈内容',
+    createTime      datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime      datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete        tinyint      default 0             not null comment '是否删除',
+    INDEX idx_userId (userId),
+    INDEX idx_feedbackType (feedbackType)
+) comment '用户反馈表' collate = utf8mb4_unicode_ci;
