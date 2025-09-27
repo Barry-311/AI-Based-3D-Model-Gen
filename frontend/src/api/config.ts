@@ -4,6 +4,7 @@ const config = {
   userRegister: "/api/user/register",
   userLogin: "/api/user/login",
   userLogout: "/api/user/logout",
+  getModelsByPage: "/api/model/list/page/vo",
 };
 
 export { config as apiConfig };

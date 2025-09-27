@@ -47,6 +47,10 @@ export default defineConfig({
         target: "http://localhost:5173",
         changeOrigin: true,
       },
+      "/api/model/list/page/vo": {
+        target: "http://localhost:5173",
+        changeOrigin: true,
+      },
     },
   },
 });

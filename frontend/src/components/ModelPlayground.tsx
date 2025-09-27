@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
 } from "react";
 import * as THREE from "three";
@@ -309,7 +310,12 @@ function GLBModel({
   ) : null;
 }
 
-function ModelPlayground() {
+interface IModelPlaygroundProps {
+  glbUrl: string;
+  customControls?: ReactNode; // 为 "下载" 等自定义按钮预留的插槽
+}
+
+function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
   const [shouldRenderTexture, setShouldRenderTexture] = useState(true);
   const [shouldRenderWireframe, setShouldRenderWireframe] = useState(false);
   const [shouldRenderVertexNormals, setShouldRenderVertexNormals] =
@@ -318,8 +324,8 @@ function ModelPlayground() {
   const [isContextLost, setIsContextLost] = useState(false);
   const [isInitialFit, setIsInitialFit] = useState(true); // 使 Bounds 只在模型初始加载时进行 fit 操作
 
-  const { status, progress, error, pbrModelUrl, renderImageUrl } =
-    useGenerationStore();
+  // const { status, progress, error, pbrModelUrl, renderImageUrl } =
+  //   useGenerationStore();
 
   const groundSize = useMemo(() => {
     if (!modelDetails) return 40; // 默认大小
@@ -329,13 +335,22 @@ function ModelPlayground() {
   }, [modelDetails]);
 
   const handleModelLoad = useCallback((details: ModelDetails) => {
+    // 在模型加载并首次适配相机后禁用 fit
     setModelDetails(details);
     setTimeout(() => setIsInitialFit(false), 2000);
   }, []);
 
+  if (!glbUrl) {
+    return (
+      <div className="h-full w-full flex justify-center items-center">
+        <div className="text-gray-400 select-none">无效的模型URL</div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {status !== TaskStatus.COMPLETED ? (
+      {/* {status !== TaskStatus.COMPLETED ? (
         <div className="h-full w-full flex justify-center items-center">
           {status === TaskStatus.IDLE && (
             <div className="text-gray-400 select-none">
@@ -351,116 +366,119 @@ function ModelPlayground() {
           )}
           {status === TaskStatus.FAILED && <div>生成时发生错误</div>}
         </div>
-      ) : (
-        <div className="h-full w-full flex flex-col">
-          <section className="mb-4 flex gap-5 items-center">
-            <span className="flex gap-x-3 items-center">
-              <Label htmlFor="render-texture">显示纹理</Label>
-              <Checkbox
-                id="render-texture"
-                checked={shouldRenderTexture}
-                onCheckedChange={(checked: boolean) =>
-                  setShouldRenderTexture(checked)
+      ) : ( */}
+      <div className="h-full w-full flex flex-col">
+        <section className="mb-4 flex gap-5 items-center">
+          <span className="flex gap-x-3 items-center">
+            <Label htmlFor="render-texture">显示纹理</Label>
+            <Checkbox
+              id="render-texture"
+              checked={shouldRenderTexture}
+              onCheckedChange={(checked: boolean) =>
+                setShouldRenderTexture(checked)
+              }
+            />
+          </span>
+          <span className="flex gap-x-3 items-center">
+            <Label htmlFor="render-wireframe">显示线框</Label>
+            <Checkbox
+              id="render-wireframe"
+              checked={shouldRenderWireframe}
+              onCheckedChange={(checked: boolean) =>
+                setShouldRenderWireframe(checked)
+              }
+            />
+          </span>
+          <span className="flex gap-x-3 items-center">
+            <Label htmlFor="render-vertex-normals">显示顶点法线</Label>
+            <Checkbox
+              id="render-vertex-normals"
+              checked={shouldRenderVertexNormals}
+              onCheckedChange={(checked: boolean) =>
+                setShouldRenderVertexNormals(checked)
+              }
+            />
+          </span>
+          <span className="ml-[auto] flex gap-x-2">
+            <Popover>
+              <PopoverTrigger>
+                <Button variant="outline">
+                  <IconDownload />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <DownloadForm />
+              </PopoverContent>
+            </Popover>
+          </span>
+          {customControls && (
+            <span className="ml-[auto] flex gap-x-2">{customControls}</span>
+          )}
+        </section>
+        <div className="w-full h-full relative gap-10 justify-center items-center text-6xl text-gray-400">
+          {isContextLost && (
+            <div className="absolute inset-0 flex flex-col justify-center items-center bg-white z-10">
+              <p className="text-2xl text-gray-500">渲染时发生错误</p>
+            </div>
+          )}
+          <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
+            <color attach="background" args={["#eeeeee"]} />
+            <hemisphereLight args={[0xb1e1ff, 0xb97a20, 2]} />
+            <directionalLight
+              position={[0, 10, 0]}
+              target-position={[-5, 0, 0]}
+              intensity={10}
+            />
+            <GroundPlane size={groundSize} />
+            <ErrorBoundary FallbackComponent={ErrorFallback}>
+              <Suspense
+                fallback={
+                  <Html center>
+                    <IconLoader2 className="animate-spin w-xl h-xl" />
+                  </Html>
                 }
-              />
-            </span>
-            <span className="flex gap-x-3 items-center">
-              <Label htmlFor="render-wireframe">显示线框</Label>
-              <Checkbox
-                id="render-wireframe"
-                checked={shouldRenderWireframe}
-                onCheckedChange={(checked: boolean) =>
-                  setShouldRenderWireframe(checked)
-                }
-              />
-            </span>
-            <span className="flex gap-x-3 items-center">
-              <Label htmlFor="render-vertex-normals">显示顶点法线</Label>
-              <Checkbox
-                id="render-vertex-normals"
-                checked={shouldRenderVertexNormals}
-                onCheckedChange={(checked: boolean) =>
-                  setShouldRenderVertexNormals(checked)
-                }
-              />
-            </span>
-            <span className="ml-[auto] flex gap-x-2">
-              <Popover>
-                <PopoverTrigger>
-                  <Button variant="outline">
-                    <IconDownload />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <DownloadForm />
-                </PopoverContent>
-              </Popover>
-            </span>
-          </section>
-          <div className="w-full h-full relative gap-10 justify-center items-center text-6xl text-gray-400">
-            {isContextLost && (
-              <div className="absolute inset-0 flex flex-col justify-center items-center bg-white z-10">
-                <p className="text-2xl text-gray-500">渲染时发生错误</p>
-              </div>
-            )}
-            <Canvas camera={{ position: [0, 10, 20], fov: 45 }}>
-              <color attach="background" args={["#eeeeee"]} />
-              <hemisphereLight args={[0xb1e1ff, 0xb97a20, 2]} />
-              <directionalLight
-                position={[0, 10, 0]}
-                target-position={[-5, 0, 0]}
-                intensity={10}
-              />
-              <GroundPlane size={groundSize} />
-              <ErrorBoundary FallbackComponent={ErrorFallback}>
-                <Suspense
-                  fallback={
-                    <Html center>
-                      <IconLoader2 className="animate-spin" />
-                    </Html>
-                  }
-                >
-                  {/* <Model
+              >
+                {/* <Model
                     objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
                     mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
                     // objUrl="/test_models/windmill/windmill.obj"
                     // mtlUrl="/test_models/windmill/windmill.mtl"
                     renderTexture={renderTexture}
                   /> */}
-                  <Bounds fit={isInitialFit} clip observe margin={1.2}>
-                    <GLBModel
-                      // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
-                      // glbUrl="/test_models/cat/cat.glb"
-                      // glbUrl="https://tripo-data.rg1.data.tripo3d.com/tcli_a288f685fd084ea3b13edb08445376e2/20250926/8e1a29df-9ef8-408a-ae17-0f5c1955a3ba/tripo_pbr_model_8e1a29df-9ef8-408a-ae17-0f5c1955a3ba.glb?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYTI4OGY2ODVmZDA4NGVhM2IxM2VkYjA4NDQ1Mzc2ZTIvMjAyNTA5MjYvOGUxYTI5ZGYtOWVmOC00MDhhLWFlMTctMGY1YzE5NTVhM2JhL3RyaXBvX3Bicl9tb2RlbF84ZTFhMjlkZi05ZWY4LTQwOGEtYWUxNy0wZjVjMTk1NWEzYmEuZ2xiIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzU4OTMxMjAwfX19XX0_&Signature=Aw2wNxAi8QxFuiFoHvrSjfXF~mHvw00n7fT3NjIhaLBUujHhHey4hrcaHGoQYmYPltuamRrVayIUdNtvbILiR-k1tHPnhwOZKE~fQpv9szyfKLNDV3slqYfd6NpSHGkU-UChCunxPc5RJ4qrHPlQBsWJJm4ELPGzftgWEyRzHYjwiXh9sS4sS4a273KgnChRTvAGGaBTN6LGiJd~aYTTHXaCJDRqEbecH-wA0AUJd7nevvWoIRv5Yu818432ircxq-xydIE1Vu2km-Bl8K~TU3bqy2EQlCQQtSJ9ypQzvH6JDdyDmWikzDCgfptQIW-6e1n3AwfMZGtvr4ARue6mNQ__&Key-Pair-Id=K1676C64NMVM2J"
-                      glbUrl={pbrModelUrl || ""}
-                      shouldRenderTexture={shouldRenderTexture}
-                      shouldRenderWireframe={shouldRenderWireframe}
-                      shouldRenderVertextNormals={shouldRenderVertexNormals}
-                      onLoad={handleModelLoad}
-                    />
-                    {modelDetails && (
-                      // 隐形锚点，用于将 Bounds 的焦点拉低
-                      <Box
-                        position={[
-                          modelDetails.center.x,
-                          -modelDetails.size.y * 2, // 放在负距离处
-                          modelDetails.center.z,
-                        ]}
-                        args={[1, 1, 1]}
-                      >
-                        <meshBasicMaterial transparent opacity={0} />
-                      </Box>
-                    )}
-                  </Bounds>
-                </Suspense>
-              </ErrorBoundary>
-              <OrbitControls makeDefault />
-              <SceneUpdater modelDetails={modelDetails} />
-              <ContextManager setContextLost={setIsContextLost} />
-            </Canvas>
-          </div>
+                <Bounds fit={isInitialFit} clip observe margin={1.2}>
+                  <GLBModel
+                    // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"
+                    // glbUrl="/test_models/cat/cat.glb"
+                    // glbUrl="https://tripo-data.rg1.data.tripo3d.com/tcli_a288f685fd084ea3b13edb08445376e2/20250926/8e1a29df-9ef8-408a-ae17-0f5c1955a3ba/tripo_pbr_model_8e1a29df-9ef8-408a-ae17-0f5c1955a3ba.glb?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYTI4OGY2ODVmZDA4NGVhM2IxM2VkYjA4NDQ1Mzc2ZTIvMjAyNTA5MjYvOGUxYTI5ZGYtOWVmOC00MDhhLWFlMTctMGY1YzE5NTVhM2JhL3RyaXBvX3Bicl9tb2RlbF84ZTFhMjlkZi05ZWY4LTQwOGEtYWUxNy0wZjVjMTk1NWEzYmEuZ2xiIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzU4OTMxMjAwfX19XX0_&Signature=Aw2wNxAi8QxFuiFoHvrSjfXF~mHvw00n7fT3NjIhaLBUujHhHey4hrcaHGoQYmYPltuamRrVayIUdNtvbILiR-k1tHPnhwOZKE~fQpv9szyfKLNDV3slqYfd6NpSHGkU-UChCunxPc5RJ4qrHPlQBsWJJm4ELPGzftgWEyRzHYjwiXh9sS4sS4a273KgnChRTvAGGaBTN6LGiJd~aYTTHXaCJDRqEbecH-wA0AUJd7nevvWoIRv5Yu818432ircxq-xydIE1Vu2km-Bl8K~TU3bqy2EQlCQQtSJ9ypQzvH6JDdyDmWikzDCgfptQIW-6e1n3AwfMZGtvr4ARue6mNQ__&Key-Pair-Id=K1676C64NMVM2J"
+                    glbUrl={glbUrl || ""}
+                    shouldRenderTexture={shouldRenderTexture}
+                    shouldRenderWireframe={shouldRenderWireframe}
+                    shouldRenderVertextNormals={shouldRenderVertexNormals}
+                    onLoad={handleModelLoad}
+                  />
+                  {modelDetails && (
+                    // 隐形锚点，用于将 Bounds 的焦点拉低
+                    <Box
+                      position={[
+                        modelDetails.center.x,
+                        -modelDetails.size.y * 2, // 放在负距离处
+                        modelDetails.center.z,
+                      ]}
+                      args={[1, 1, 1]}
+                    >
+                      <meshBasicMaterial transparent opacity={0} />
+                    </Box>
+                  )}
+                </Bounds>
+              </Suspense>
+            </ErrorBoundary>
+            <OrbitControls makeDefault />
+            <SceneUpdater modelDetails={modelDetails} />
+            <ContextManager setContextLost={setIsContextLost} />
+          </Canvas>
         </div>
-      )}
+      </div>
+      {/* )} */}
     </>
   );
 }
