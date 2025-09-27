@@ -1,35 +1,27 @@
-import type { ModelPagedRequest } from "@/types/model";
+import type {
+  Model,
+  ModelPagedRequest,
+  ModelPagedResponse,
+  ModelRequest,
+} from "@/types/model";
 import { apiConfig } from "./config";
+import { fetchApi } from "./utils";
 
-async function getModelsByPage(params: ModelPagedRequest) {
-  try {
-    const response = await fetch(apiConfig.getModelsByPage, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // 注意：接口文档中请求体有一个根参数 model3DQueryRequest
-      // 但实际开发中，后端框架可能直接接收平铺的 JSON 对象。
-      // 这里我们假设后端能直接处理。如果不行，需要包装成 { "model3DQueryRequest": params }
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.code !== 0) {
-      throw new Error(result.message || "Failed to fetch data");
-    }
-
-    // 直接返回成功响应中的 data 部分
-    return result.data;
-  } catch (error) {
-    console.error("Failed to fetch models:", error);
-    throw error; // 将错误向上抛出，以便 store 能捕获
-  }
+async function getModelsByPage(data: ModelPagedRequest) {
+  return fetchApi<ModelPagedResponse>(apiConfig.getModelsByPage, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
-export { getModelsByPage };
+async function getModelById(data: ModelRequest) {
+  // 构造带查询参数的 URL
+  const urlWithParams = `${apiConfig.getModelById}?id=${data.id}`;
+
+  // 使用 GET 方法，并且不需要 body
+  return fetchApi<Model>(urlWithParams, {
+    method: "GET",
+  });
+}
+
+export { getModelsByPage, getModelById };

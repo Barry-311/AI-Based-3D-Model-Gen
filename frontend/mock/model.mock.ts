@@ -73,4 +73,43 @@ export default defineMock([
       }, 1000);
     },
   },
+  {
+    url: "/api/model/get",
+    method: "GET",
+    response: (req, res) => {
+      const id = parseInt((req.query.id as string) || "", 10);
+
+      if (!id || isNaN(id)) {
+        res.end(
+          JSON.stringify({
+            code: 400,
+            data: null,
+            message: "请求错误：id 参数缺失或无效",
+          })
+        );
+        return;
+      }
+
+      const model = allModels.find((m) => m.id === id);
+
+      if (!model) {
+        res.end(
+          JSON.stringify({
+            code: 1,
+            data: null,
+            message: `未找到 ID 为 ${id} 的模型`,
+          })
+        );
+        return;
+      }
+
+      res.end(
+        JSON.stringify({
+          code: 0,
+          data: model,
+          message: "获取成功",
+        })
+      );
+    },
+  },
 ]);

@@ -40,18 +40,19 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
           sortOrder: "descend",
         });
 
-        const newModels = response.records || [];
+        const newModels = response.data.records || [];
 
         set((state) => ({
           models:
             currentPage === 1 ? newModels : [...state.models, ...newModels],
           page: state.page + 1,
           hasMore:
-            newModels.length === PAGE_SIZE && state.page < response.totalPage,
+            newModels.length === PAGE_SIZE && state.page < response.data.totalPage,
           isLoading: false,
         }));
       } catch (error) {
         set({ isLoading: false, error: error as Error });
+        throw error;
       }
     },
 
