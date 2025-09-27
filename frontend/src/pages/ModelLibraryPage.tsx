@@ -149,14 +149,14 @@ function ModelLibraryPage() {
   }, [models, filterTypes]);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex-1 flex flex-col">
       <Filter
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
         filterTypes={filterTypes}
         onFilterChange={handleFilterChange}
       />
-      <div className="w-full p-5 grid xl:grid-cols-[repeeat(auto-fill,_500px)] lg:grid-cols-3 md:grid-cols-2 grid-cols-1 justify-center justify-items-start gap-5">
+      <div className="w-full p-5 grid xl:grid-cols-[repeat(auto-fill,minmax(500px,_1fr))] lg:grid-cols-3 md:grid-cols-2 grid-cols-1 justify-center justify-items-start gap-5">
         {filteredModels.map((model, index) => {
           if (filteredModels.length === index + 1) {
             return (

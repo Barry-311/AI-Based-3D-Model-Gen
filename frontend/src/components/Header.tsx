@@ -44,7 +44,7 @@ function Header() {
   };
 
   return (
-    <div className="w-full flex items-center gap-x-5 underline-offset-8">
+    <div className="w-full flex items-center gap-x-10 underline-offset-8">
       <span>🔥LOGO🔥</span>
       <nav className="flex-1">
         <ul className="flex w-full gap-x-10 items-center">
