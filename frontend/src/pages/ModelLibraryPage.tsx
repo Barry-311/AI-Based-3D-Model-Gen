@@ -34,12 +34,6 @@ function ModelLibraryPage() {
     [isLoading, hasMore, fetchModels]
   );
 
-  // useEffect(() => {
-  //   // 组件首次加载或依赖项变化时，重置并加载第一页
-  //   reset();
-  //   fetchModels();
-  // }, [fetchModels, reset]);
-
   useEffect(() => {
     // 仅在 model 列表为空时加载初始数据，防止热更新等情况下的重复加载
     if (useModelStore.getState().models.length === 0) {
@@ -60,13 +54,6 @@ function ModelLibraryPage() {
                 creater={`User ${model.userId}`}
                 createTime={model.createTime}
               />
-              {/* <ModelCard
-                glbUrl="/test_models/dog/dog.glb"
-                renderImage="https://picsum.photos/500/500"
-                prompt="提示词提示词"
-                creater="user123"
-                createTime="2025-01-01"
-              /> */}
             </div>
           );
         } else {
@@ -79,14 +66,6 @@ function ModelLibraryPage() {
               creater={`User ${model.userId}`}
               createTime={model.createTime}
             />
-            // <ModelCard
-            //   key={index}
-            //   glbUrl="/test_models/dog/dog.glb"
-            //   renderImage="https://picsum.photos/500/500"
-            //   prompt="提示词提示词"
-            //   creater="user123"
-            //   createTime="2025-01-01"
-            // />
           );
         }
       })}
