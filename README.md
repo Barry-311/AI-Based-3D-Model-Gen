@@ -31,18 +31,18 @@
 5. 访问 `http://localhost:5173`
 
 ****后端****：
-## 环境准备
+环境准备
 - 安装 MySQL，创建并配置数据库
 - 准备 COS 对象存储（bucket、region、AK/SK）
 - 获取 Tripo3D OpenAPI 的 base-url 与 api-key
 - 获取 DeepSeek（或其他 OpenAI 兼容）API Key，用于提示词增强
 
-## 数据库初始化
+数据库初始化
 使用项目提供的 SQL 脚本初始化数据库与表结构：
 - 建库与完整表结构：`sql/create_table1.sql`
 建议直接执行 `create_table1.sql`（包含完整字段与索引）。
 
-## 配置说明
+配置说明
 编辑 `src/main/resources/application.yml`，至少需要配置以下部分：
 - 服务基础配置
 - 数据库连接
@@ -54,7 +54,7 @@
 - `tripo3d.api.base-url` 与 `tripo3d.api.key` 在代码中通过 `@Value("${tripo3d.api.base-url}")`、`@Value("${tripo3d.api.key}")` 注入，必须正确配置，否则无法调用 Tripo3D。
 - LangChain4j 的 `base-url`、`api-key`、`model-name` 请使用你自己的供应商或模型。
 
-## 构建与运行（Windows）
+构建与运行（Windows）
 - 编译打包
 ```bash
 .\mvnw.cmd clean package
