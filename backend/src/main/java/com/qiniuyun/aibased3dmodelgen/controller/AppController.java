@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
 import java.util.Map;
@@ -47,6 +48,9 @@ public class AppController {
 
     @Resource
     private AiGeneratorFacade aiGeneratorFacade;
+
+    @Resource(name = "tripoBlockingScheduler")
+    private Scheduler tripoBlockingScheduler;
 
 
     @GetMapping(value = "/augment/prompt", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -87,12 +91,14 @@ public class AppController {
         BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
         return tripo3DService.generateModelFromText(modelGenerateRequest)
+                .publishOn(tripoBlockingScheduler)
                 .flatMapMany(response -> {
                     String taskId = response.getTaskId();
 
                     // 创建轮询流，每5秒检查一次状态
                     return Flux.interval(Duration.ofSeconds(5))
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                            .publishOn(tripoBlockingScheduler)
                             .map(statusResponse -> {
                                 // 保存或更新模型数据，传递用户的实际提示词
                                 Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse,
@@ -143,12 +149,14 @@ public class AppController {
         BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
         return tripo3DService.generateModelFromText(modelGenerateRequest)
+                .publishOn(tripoBlockingScheduler)
                 .flatMapMany(response -> {
                     String taskId = response.getTaskId();
 
                     // 创建轮询流，每5秒检查一次状态
                     return Flux.interval(Duration.ofSeconds(5))
                             .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                            .publishOn(tripoBlockingScheduler)
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
                                 Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, augmentedPrompt, request);
@@ -196,37 +204,42 @@ public class AppController {
         String pictureType = appService.getPictureType(picture);
         // 上传图片到云存储
         UploadFileTypeEnum imageType = UploadFileTypeEnum.USER_UPLOADED;
-        String uploadedPictureUrl = appService.uploadFile(picture, imageType);
 
         ImageToModelRequest imageToModelRequest = new ImageToModelRequest();
         BeanUtils.copyProperties(imageGenerateStreamRequest, imageToModelRequest);
 
-        log.info("开始图片转模型任务，图片URL: {}, 类型: {}", uploadedPictureUrl, pictureType);
-        // 请求 API 生成模型（现在使用优化后的上传流程）
-        return tripo3DService.generateModelFromImage(uploadedPictureUrl, pictureType, imageToModelRequest)
-                .flatMapMany(response -> {
-                    String taskId = response.getTaskId();
-                    log.info("图片转模型任务已创建，任务ID: {}", taskId);
-                    // 创建轮询流，每5秒检查一次状态
-                    return Flux.interval(Duration.ofSeconds(5))
-                            .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
-                            .map(statusResponse -> {
-                                // 保存或更新模型数据，使用专门的图片转模型方法
-                                Model3D model3D = model3DService.saveOrUpdateModelFromImage(statusResponse, uploadedPictureUrl, request);
-                                // 转换为VO对象
-                                return model3DService.getModel3DVO(model3D);
-                            })
-                            .takeUntil(model3DVO -> {
-                                String status = model3DVO.getStatus();
-                                return "success".equals(status) || "failed".equals(status) ||
-                                        "banned".equals(status) || "expired".equals(status) ||
-                                        "cancelled".equals(status);
-                            })
-                            .map(model3DVO -> ServerSentEvent.<Model3DVO>builder()
-                                    .data(model3DVO)
-                                    .event("progress")
-                                    .build());
-                })
+        // 将可能阻塞的图片上传放到自定义线程池中执行
+        return Mono.fromCallable(() -> appService.uploadFile(picture, imageType))
+                .subscribeOn(tripoBlockingScheduler)
+                .doOnNext(uploadedPictureUrl -> log.info("开始图片转模型任务，图片URL: {}, 类型: {}", uploadedPictureUrl, pictureType))
+                .flatMapMany(uploadedPictureUrl -> 
+                    tripo3DService.generateModelFromImage(uploadedPictureUrl, pictureType, imageToModelRequest)
+                        .publishOn(tripoBlockingScheduler)
+                        .flatMapMany(response -> {
+                            String taskId = response.getTaskId();
+                            log.info("图片转模型任务已创建，任务ID: {}", taskId);
+                            // 创建轮询流，每5秒检查一次状态
+                            return Flux.interval(Duration.ofSeconds(5))
+                                    .flatMap(tick -> tripo3DService.checkTaskStatus(taskId))
+                                    .publishOn(tripoBlockingScheduler)
+                                    .map(statusResponse -> {
+                                        // 保存或更新模型数据，使用专门的图片转模型方法
+                                        Model3D model3D = model3DService.saveOrUpdateModelFromImage(statusResponse, uploadedPictureUrl, request);
+                                        // 转换为VO对象
+                                        return model3DService.getModel3DVO(model3D);
+                                    })
+                                    .takeUntil(model3DVO -> {
+                                        String status = model3DVO.getStatus();
+                                        return "success".equals(status) || "failed".equals(status) ||
+                                                "banned".equals(status) || "expired".equals(status) ||
+                                                "cancelled".equals(status);
+                                    })
+                                    .map(model3DVO -> ServerSentEvent.<Model3DVO>builder()
+                                            .data(model3DVO)
+                                            .event("progress")
+                                            .build());
+                        })
+                )
                 .onErrorResume(e -> {
                     log.error("图片转模型流式生成过程中发生错误: {}", e.getMessage(), e);
                     // 创建错误响应的VO对象
