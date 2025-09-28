@@ -312,7 +312,7 @@ function GLBModel({
 
 interface IModelPlaygroundProps {
   glbUrl: string;
-  customControls?: ReactNode; // 为 "下载" 等自定义按钮预留的插槽
+  customControls?: ReactNode;
 }
 
 function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
@@ -323,9 +323,6 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
   const [modelDetails, setModelDetails] = useState<ModelDetails | null>(null);
   const [isContextLost, setIsContextLost] = useState(false);
   const [isInitialFit, setIsInitialFit] = useState(true); // 使 Bounds 只在模型初始加载时进行 fit 操作
-
-  // const { status, progress, error, pbrModelUrl, renderImageUrl } =
-  //   useGenerationStore();
 
   const groundSize = useMemo(() => {
     if (!modelDetails) return 40; // 默认大小
@@ -350,23 +347,6 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
 
   return (
     <>
-      {/* {status !== TaskStatus.COMPLETED ? (
-        <div className="h-full w-full flex justify-center items-center">
-          {status === TaskStatus.IDLE && (
-            <div className="text-gray-400 select-none">
-              使用提示词或上传图片开始生成模型
-            </div>
-          )}
-          {status === TaskStatus.RUNNING && (
-            <div className="w-full flex flex-col items-center gap-10">
-              <ModelIcon />
-              <Progress value={progress} className="w-[60%]" />
-              <span>正在生成...</span>
-            </div>
-          )}
-          {status === TaskStatus.FAILED && <div>生成时发生错误</div>}
-        </div>
-      ) : ( */}
       <div className="h-full w-full flex flex-col">
         <section className="mb-4 flex gap-5 items-center">
           <span className="flex gap-x-3 items-center">
@@ -438,13 +418,6 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
                   </Html>
                 }
               >
-                {/* <Model
-                    objUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.obj"
-                    mtlUrl="https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl"
-                    // objUrl="/test_models/windmill/windmill.obj"
-                    // mtlUrl="/test_models/windmill/windmill.mtl"
-                    renderTexture={renderTexture}
-                  /> */}
                 <Bounds fit={isInitialFit} clip observe margin={1.2}>
                   <GLBModel
                     // glbUrl="/test_models/city/cartoon_lowpoly_small_city_free_pack.glb"

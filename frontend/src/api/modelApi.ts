@@ -15,13 +15,25 @@ async function getModelsByPage(data: ModelPagedRequest) {
 }
 
 async function getModelById(data: ModelRequest) {
-  // 构造带查询参数的 URL
   const urlWithParams = `${apiConfig.getModelById}?id=${data.id}`;
 
-  // 使用 GET 方法，并且不需要 body
   return fetchApi<Model>(urlWithParams, {
     method: "GET",
   });
 }
 
-export { getModelsByPage, getModelById };
+async function deleteModelById(data: ModelRequest) {
+  return fetchApi<ModelPagedResponse>(apiConfig.deleteModelById, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+async function updateModelById(data: ModelRequest) {
+  return fetchApi<ModelPagedResponse>(apiConfig.updateModelById, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export { getModelsByPage, getModelById, deleteModelById, updateModelById };

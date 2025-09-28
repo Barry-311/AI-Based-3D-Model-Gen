@@ -1,6 +1,11 @@
 import { create } from "zustand";
-import { getModelsByPage } from "@/api/modelApi";
+import {
+  deleteModelById,
+  getModelsByPage,
+  updateModelById,
+} from "@/api/modelApi";
 import type { Model } from "@/types/model";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 18;
 
@@ -16,7 +21,9 @@ interface ModelStoreState {
 }
 
 interface ModelStoreActions {
-  fetchModels: () => Promise<void>;
+  fetchModels: (userId?: number) => Promise<void>;
+  deleteModel: (modelId: number) => Promise<void>;
+  updateModel: (modelId: number, isPublic: boolean) => Promise<void>;
   reset: () => void;
   setSortOrder: (order: SortOrder) => void;
 }
@@ -30,7 +37,7 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
     error: null,
     sortOrder: "descend",
 
-    fetchModels: async () => {
+    fetchModels: async (userId?: number) => {
       if (get().isLoading || !get().hasMore) return;
 
       set({ isLoading: true, error: null });
@@ -43,6 +50,7 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
           pageSize: PAGE_SIZE,
           sortField: "createTime",
           sortOrder: get().sortOrder,
+          userId,
         });
 
         const newModels = response.data.records || [];
@@ -52,11 +60,42 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
             currentPage === 1 ? newModels : [...state.models, ...newModels],
           page: state.page + 1,
           hasMore:
-            newModels.length === PAGE_SIZE && state.page < response.data.totalPage,
+            newModels.length === PAGE_SIZE &&
+            state.page < response.data.totalPage,
           isLoading: false,
         }));
       } catch (error) {
         set({ isLoading: false, error: error as Error });
+        throw error;
+      }
+    },
+
+    deleteModel: async (modelId: number) => {
+      try {
+        await deleteModelById({ id: modelId });
+        set((state) => ({
+          models: state.models.filter((model) => model.id !== modelId),
+        }));
+        toast.success("删除成功");
+      } catch (error) {
+        console.error("Failed to delete model:", error);
+        set({ error: error as Error });
+        throw error;
+      }
+    },
+
+    updateModel: async (modelId: number, isPublic: boolean) => {
+      try {
+        await updateModelById({ id: modelId, isPublic });
+        set((state) => ({
+          models: state.models.map((model) =>
+            model.id === modelId ? { ...model, isPublic } : model
+          ),
+        }));
+        toast.success("修改成功");
+      } catch (error) {
+        console.error("Failed to update model:", error);
+        set({ error: error as Error });
         throw error;
       }
     },

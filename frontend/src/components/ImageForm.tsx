@@ -134,7 +134,7 @@ function ImageForm() {
               control={form.control}
               name="isPublic"
               render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
+                <FormItem className="hidden justify-between items-center">
                   <FormLabel>公开发布到模型库</FormLabel>
                   <FormControl>
                     <Switch
