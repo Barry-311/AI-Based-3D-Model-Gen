@@ -1,4 +1,4 @@
-package com.qiniuyun.aibased3dmodelgen.core;
+package com.qiniuyun.aibased3dmodelgen.ai;
 
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorService;
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorServiceFactory;
@@ -23,12 +23,6 @@ public class AiGeneratorFacade {
     private AiGeneratorServiceFactory aiGeneratorServiceFactory;
     @Resource
     private Tripo3DService tripo3DService;
-
-
-    public Mono<ModelGenerateResponse> generateModelFromAugmentedText(Long appId, String message, ObjectGenTypeEnum objectGenTypeEnum) {
-        String augmentedPrompt = generatePrompt(appId, message, objectGenTypeEnum);
-        return tripo3DService.generateModelFromText(augmentedPrompt);
-    }
 
     public String generatePrompt(Long appId, String message, ObjectGenTypeEnum objectGenTypeEnum) {
         if (objectGenTypeEnum == null) {

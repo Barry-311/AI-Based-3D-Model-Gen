@@ -19,6 +19,11 @@ public class Model3DVO implements Serializable {
     private String taskId;
 
     /**
+     * 模型名称
+     */
+    private String name;
+
+    /**
      * 提示词
      */
     private String prompt;
@@ -44,9 +49,19 @@ public class Model3DVO implements Serializable {
     private String renderedImageUrl;
 
     /**
-     * 文件大小
+     * 用户上传的图片 URL
      */
-    private Long fileSize;
+    private String pictureUrl;
+
+    /**
+     * 用户ID
+     */
+    private Long userId;
+
+    /**
+     * 生成时间
+     */
+    private String genTime;
 
     /**
      * 创建时间
@@ -54,7 +69,9 @@ public class Model3DVO implements Serializable {
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 是否公开
      */
-    private LocalDateTime updateTime;
+    private Integer isPublic;
+
+    private static final long serialVersionUID = 1L;
 }
