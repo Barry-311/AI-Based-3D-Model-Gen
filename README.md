@@ -1,34 +1,66 @@
 # 3DMGF
 
-## 开发周期
-2025/09/22 - 2025/09/28
+**应用访问地址**：http://118.25.143.47/
 
-## 任务分配
-- **刘一苇 / 江睿达**：程序开发（前端页面 + API 接入）  
-- **王子硕**：文档撰写 / 项目管理 / 测试
+**项目文档说明**：
+**PRD.pdf**：产品文档，包含产品背景、用户需求、功能需求、技术方案与架构设计、3D模型生成API选择、效果评估指标与系统设计、API调用优化
+**项目管理文档.pdf**：成员任务分配、开发计划安排、代码规范
+**3DMGF.rp**：产品原型文件
+**architecture.svg**：架构设计
 
-## MVP功能：
-- 基础网页搭建（网址、页面排版、基本交互）  
-- 文本 / 图片输入（多模态支持）  
-- 调用 API 生成单个 3D 模型  
-- 模型下载功能（支持 `.glb / .obj / .fbx` 格式）
+**使用说明**：
+****前端****：
+1. 进入前端目录
+    ```
+    cd frontend
+    ```
+2. 安装依赖
+    ```
+    pnpm install
+    ```
+3. 将 `/src/api/config.ts` 中的 `baseUrl` 值改为实际的后端 API 地址
+4. 启动项目：
+    ```
+    pnpm dev
+    ```
+5. 访问 `http://localhost:5173`
 
-## Dev Task List 1 (第一阶段目标：09/22 - 09/23 完成)
-1. **项目创建**：GitHub 仓库 & 项目初始化  
-2. **网页搭建**：完成基本页面框架和UI  
-3. **多模态输入**：支持文本输入和图片上传  
-4. **API 选择与接入**：敲定 API 服务商并完成接口调用测试  
-5. **下载功能**：实现 3D 模型下载，验证文件格式正确性（使用假数据通过从生成的目标文件夹进行下载测试）
+****后端****：
+## 环境准备
+- 安装 MySQL，创建并配置数据库
+- 准备 COS 对象存储（bucket、region、AK/SK）
+- 获取 Tripo3D OpenAPI 的 base-url 与 api-key
+- 获取 DeepSeek（或其他 OpenAI 兼容）API Key，用于提示词增强
 
-## Dev Task List 2 (第二阶段目标：09/24 - 09/25 完成)
-1. **API 集成（Tripo）**：完成任务提交、查询与结果获取，前端可预览GLB
-2. **Prompt 优化**：整理模板（写实/低模/卡通等），确定默认参数并生成对比结果
-3. **评估系统**：实现一键脚本输出 `report.csv`（任务ID、耗时、polycount、文件大小等）及确定优化指标  
-4. **PRD 定稿**：完善目标、范围、功能清单、流程与非功能指标
+## 数据库初始化
+使用项目提供的 SQL 脚本初始化数据库与表结构：
+- 建库与完整表结构：`sql/create_table1.sql`
+建议直接执行 `create_table1.sql`（包含完整字段与索引）。
 
-## Dev Task List 3 (第三阶段目标：09/26 - 09/27 完成)
-1. **模型保存与管理**：实现用户登录、模型保存至个人库、基本的历史列表查看功能
-2. **模型纹理输出**：增加贴图生成功能，前端可选择“下载带纹理”或“下载无纹理”模型。
-3. **缓存与调用优化**：减少重复 API 调用。、
-4. **整体联调与测试**：完成端到端测试（文本/图片输入 → 生成模型 → 保存/下载/输出），保证 Demo 可顺利运行。
+## 配置说明
+编辑 `src/main/resources/application.yml`，至少需要配置以下部分：
+- 服务基础配置
+- 数据库连接
+- LangChain4j（用于 Prompt 增强）
+- Tripo3D（WebClient 与 API Key）
+- COS 对象存储
+
+注意：
+- `tripo3d.api.base-url` 与 `tripo3d.api.key` 在代码中通过 `@Value("${tripo3d.api.base-url}")`、`@Value("${tripo3d.api.key}")` 注入，必须正确配置，否则无法调用 Tripo3D。
+- LangChain4j 的 `base-url`、`api-key`、`model-name` 请使用你自己的供应商或模型。
+
+## 构建与运行（Windows）
+- 编译打包
+```bash
+.\mvnw.cmd clean package
+```
+- 直接运行（开发模式）
+```bash
+.\mvnw.cmd spring-boot:run
+```
+应用启动后：
+- 访问健康检查：http://localhost:8123/api/health/
+- OpenAPI JSON：http://localhost:8123/api/v3/api-docs/default
+
+
 
