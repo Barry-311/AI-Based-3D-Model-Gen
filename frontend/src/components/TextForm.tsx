@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import BaseForm from "./BaseForm";
+import useGenerationStore from "@/stores/generationStore";
 
 function TextForm() {
   const formSchema = z.object({
@@ -20,9 +21,11 @@ function TextForm() {
       }),
   });
 
+  const startTextGeneration = useGenerationStore((state) => state.startTextGeneration);
+  const reset = useGenerationStore((state) => state.reset);
+
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log(values);
+    await startTextGeneration(values.prompt);
   }
 
   return (

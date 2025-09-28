@@ -10,15 +10,9 @@ type BaseResponse<T> = {
  * @param options fetch 的配置
  */
 async function fetchApi<T>(
-  endpoint: string,
+  url: string,
   options: RequestInit = {}
 ): Promise<BaseResponse<T>> {
-  // 导入配置
-  const { apiConfig } = await import('./config');
-  
-  // 构建完整的URL
-  const url = endpoint.startsWith('http') ? endpoint : `${apiConfig.baseURL}${endpoint}`;
-  
   const response = await fetch(url, {
     ...options,
     headers: {
