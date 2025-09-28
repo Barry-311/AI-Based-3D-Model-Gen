@@ -41,18 +41,18 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     private Tripo3DService tripo3DService;
 
     @Override
-    public Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, HttpServletRequest request) {
-        return saveOrUpdateModelInternal(taskStatusResponse, null, prompt, request);
+    public Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, String requestSignature, HttpServletRequest request) {
+        return saveOrUpdateModelInternal(taskStatusResponse, null, prompt, requestSignature, request);
     }
 
     @Override
     public Model3D saveOrUpdateModelFromImage(TaskStatusResponse taskStatusResponse, String pictureUrl,
                                               HttpServletRequest request) {
-        return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型", request);
+        return saveOrUpdateModelInternal(taskStatusResponse, pictureUrl, "图片转模型", null, request);
     }
 
     private Model3D saveOrUpdateModelInternal(TaskStatusResponse taskStatusResponse, String pictureUrl,
-                                              String prompt, HttpServletRequest request) {
+                                              String prompt, String requestSignature, HttpServletRequest request) {
         String taskId = taskStatusResponse.getData().getTaskId();
         Model3D existingModel = getByTaskId(taskId);
         User loginUser = userService.getLoginUser(request);
@@ -66,6 +66,7 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
             model3D.setUserId(loginUser.getId());
             model3D.setName("model3D_" + taskId);
             model3D.setPrompt(prompt);
+            model3D.setRequestSignature(requestSignature);
             model3D.setCreateTime(LocalDateTime.now());
             if (StringUtils.isNotBlank(pictureUrl)) {
                 model3D.setPictureUrl(pictureUrl);
@@ -124,6 +125,11 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
     public Model3D getByTaskId(String taskId) {
         // 使用字符串字段名而不是TableDef
         return getOne(QueryWrapper.create().eq("taskId", taskId));
+    }
+
+    @Override
+    public Model3D getByRequestSignature(String requestSignature) {
+        return getOne(QueryWrapper.create().eq("requestSignature", requestSignature));
     }
 
 

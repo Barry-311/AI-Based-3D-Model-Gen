@@ -20,7 +20,7 @@ public interface Model3DService extends IService<Model3D> {
     /**
      * 保存或更新模型（文本转模型，带实际提示词）
      */
-    Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, HttpServletRequest request);
+    Model3D saveOrUpdateModelFromText(TaskStatusResponse taskStatusResponse, String prompt, String requestSignature, HttpServletRequest request);
     
     /**
      * 保存或更新模型（图片转模型）
@@ -31,6 +31,11 @@ public interface Model3DService extends IService<Model3D> {
      * 根据taskId查询模型
      */
     Model3D getByTaskId(String taskId);
+
+    /**
+     * 根据请求签名查询模型
+     */
+    Model3D getByRequestSignature(String requestSignature);
 
     /**
      * 根据模型数据生成VO

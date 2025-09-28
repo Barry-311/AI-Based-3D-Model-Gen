@@ -29,6 +29,7 @@ CREATE TABLE `model_3d` (
                             `userId`           bigint                                  NULL COMMENT '用户ID',
                             `name`             varchar(256)                            NOT NULL COMMENT '模型名称',
                             `prompt`           text                                    NULL COMMENT '生成提示词',
+                            `requestSignature` varchar(128)                            NULL COMMENT '请求签名',
                             `status`           varchar(50)                             NOT NULL COMMENT '任务状态',
                             `progress`         int           DEFAULT 0                 NOT NULL COMMENT '生成进度',
                             `pbrModelUrl`      varchar(1024)                           NULL COMMENT 'PBR模型URL',
@@ -68,3 +69,11 @@ create table if not exists user_feedback
 ALTER TABLE model_3d
     -- 添加新列
     ADD COLUMN genTime VARCHAR(50) NULL COMMENT '生成时间';
+
+ALTER TABLE model_3d
+    -- 添加请求签名+用户唯一索引，避免重复记录
+    ADD UNIQUE KEY `uk_requestSignature_userId` (`requestSignature`, `userId`);
+
+ALTER TABLE model_3d
+    -- 添加请求签名索引
+    ADD INDEX idx_requestSignature (requestSignature);
