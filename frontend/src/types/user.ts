@@ -19,3 +19,40 @@ export type CurrentUser = {
   createTime: string;
   updateTime: string;
 };
+
+export type FeedbackRequest = {
+  rating: number;
+  title: string;
+  content: string;
+};
+
+export interface FeedbackPagedRequest {
+  pageNum?: number;
+  pageSize?: number;
+  sortField?: string;
+  sortOrder?: "asc" | "desc" | "ascend" | "descend" | "";
+  id?: number;
+  userId?: number;
+  rating?: number;
+  title?: string;
+  content?: string;
+  createTime?: string;
+}
+
+export interface FeedbackPagedResponse {
+  records: {
+    id: number;
+    userId: number;
+    feedbackType: string;
+    rating: number;
+    title: string;
+    content: string;
+    createTime: string;
+    updateTime: string;
+  }[];
+  pageNumber: number;
+  pageSize: number;
+  totalPage: number;
+  totalRow: number;
+  optimizeCountQuery: boolean;
+}

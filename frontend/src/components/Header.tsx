@@ -21,6 +21,8 @@ import {
 import { RegisterForm } from "./RegisterForm";
 import useUserStore from "@/stores/userStore";
 import { cn } from "@/lib/utils";
+import { FeedbackForm } from "./FeedbackForm";
+import FeedbackList from "./FeedbackList";
 
 const navItems = [
   { name: "首页", href: "/" },
@@ -45,7 +47,7 @@ function Header() {
 
   return (
     <div className="w-full flex items-center gap-x-10 underline-offset-8">
-      <span>🔥LOGO🔥</span>
+      <span className="select-none">🔥3DMGF</span>
       <nav className="flex-1">
         <ul className="flex w-full gap-x-10 items-center">
           {navItems.map((item) => (
@@ -81,6 +83,20 @@ function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        用户反馈
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent  className="max-w-fit">
+                      {user?.userRole === "admin" ? (
+                        <FeedbackList />
+                      ) : (
+                        <FeedbackForm />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                   <DropdownMenuItem onClick={logout}>退出登录</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -8,9 +8,10 @@ interface IModelDetailCardBaseProps extends HTMLAttributes<HTMLDivElement> {
   createTime: string;
 }
 
-type IModelDetailCardProps =
-  | (IModelDetailCardBaseProps & { prompt: string; image?: never })
-  | (IModelDetailCardBaseProps & { image: string; prompt?: never });
+type IModelDetailCardProps = IModelDetailCardBaseProps & {
+  prompt: string;
+  image: string;
+};
 
 function ModelDetailCard({
   glbUrl,
@@ -23,18 +24,16 @@ function ModelDetailCard({
   return (
     <div className={cn("flex flex-col gap-2 overflow-y-scroll", className)}>
       <ModelPlayground glbUrl={glbUrl} />
-      {prompt ? (
-        <div className="font-medium text-wrap">
-          提示词:
-          {prompt}
-        </div>
+      {prompt !== "图片转模型" ? (
+        <div className="font-medium text-wrap">提示词: {prompt}</div>
       ) : (
-        <div>{<img src={image} />}</div>
+        <div>
+          <img src={image} className="w-[100px]" />
+        </div>
       )}
       <div className="text-muted-foreground">
         由 {creater} 创建于 {createTime}
       </div>
-      {/* <div className="text-muted-foreground">点赞 收藏</div> */}
     </div>
   );
 }

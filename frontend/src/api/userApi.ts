@@ -1,4 +1,11 @@
-import type { CurrentUser, LoginRequest, RegisterRequest } from "@/types/user";
+import type {
+  CurrentUser,
+  LoginRequest,
+  RegisterRequest,
+  FeedbackRequest,
+  FeedbackPagedRequest,
+  FeedbackPagedResponse,
+} from "@/types/user";
 import { apiConfig } from "./config";
 import { fetchApi } from "./utils";
 
@@ -19,7 +26,24 @@ async function login(data: LoginRequest) {
 async function logout() {
   return fetchApi<boolean>(apiConfig.userLogout, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
   });
 }
 
-export { register, login, logout };
+async function feedback(data: FeedbackRequest) {
+  return fetchApi<boolean>(apiConfig.feedback, {
+    method: "POST",
+    body: JSON.stringify({ feedbackType: "model_quality", ...data }),
+  });
+}
+
+async function getFeedbackByPage(data: FeedbackPagedRequest) {
+  return fetchApi<FeedbackPagedResponse>(apiConfig.getFeedbackByPage, {
+    method: "POST",
+    body: JSON.stringify({ feedbackType: "model_quality", ...data }),
+  });
+}
+
+export { register, login, logout, feedback, getFeedbackByPage };

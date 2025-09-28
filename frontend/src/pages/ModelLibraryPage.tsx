@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Toggle } from "@/components/ui/toggle";
 
 interface IFilterProps {
@@ -105,10 +104,16 @@ function ModelLibraryPage() {
   );
 
   useEffect(() => {
+    return () => {
+      reset();
+    };
+  }, [reset]);
+
+  useEffect(() => {
     if (models.length === 0 && hasMore) {
       fetchModels();
     }
-  }, [models.length, hasMore, fetchModels]);
+  }, [models.length, hasMore, fetchModels, location.pathname]);
 
   const handleSortChange = (value: "descend" | "ascend") => {
     if (value === sortOrder) return;
@@ -139,7 +144,7 @@ function ModelLibraryPage() {
 
     return models.filter((model) => {
       if (showText) {
-        return !!model.prompt;
+        return model.prompt !== "图片转模型";
       }
       if (showImage) {
         return !!model.pictureUrl;
@@ -165,6 +170,7 @@ function ModelLibraryPage() {
                   glbUrl={model.pbrModelUrl}
                   renderImage={model.renderedImageUrl}
                   prompt={model.prompt}
+                  image={model.pictureUrl}
                   creater={`User ${model.userId}`}
                   createTime={model.createTime}
                 />
@@ -177,6 +183,7 @@ function ModelLibraryPage() {
                 glbUrl={model.pbrModelUrl}
                 renderImage={model.renderedImageUrl}
                 prompt={model.prompt}
+                image={model.pictureUrl}
                 creater={`User ${model.userId}`}
                 createTime={model.createTime}
               />

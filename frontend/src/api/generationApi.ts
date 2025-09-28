@@ -1,8 +1,10 @@
-import type { ResultData, StreamCallbacks } from "@/types/generation";
+import type {
+  ResultData,
+  StreamCallbacks,
+  StreamImageRequest,
+  StreamRequest,
+} from "@/types/generation";
 import { apiConfig } from "./config";
-
-// const apiKey = import.meta.env.VITE_TRIPO_KEY;
-// const url = import.meta.env.VITE_TRIPO_URL;
 
 /**
  * SSE 消息解析器
@@ -41,12 +43,6 @@ function parseSSE(chunk: string): Array<{ type: string; data: any }> {
 
 /**
  * 发送POST请求以生成模型并以流式方式处理响应
- * @param prompt - 模型生成的提示词
- * @param signal - 用于取消请求的 AbortSignal
- * @param onProgress - 进度更新时的回调
- * @param onComplete - 完成时的回调
- * @param onAbort - 取消请求时的回调
- * @param onError - 发生错误时的回调
  */
 async function streamRequest(
   url: string,
@@ -55,7 +51,7 @@ async function streamRequest(
 ) {
   const { onProgress, onComplete, onAbort, onError } = callbacks;
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, { credentials: "include", ...options });
 
     if (!response.ok) {
       throw new Error(`[SSE] HTTP 错误，状态: ${response.status}`);
@@ -113,13 +109,21 @@ async function streamRequest(
 }
 
 /**
- * **用于文本生成模型**
- * @param prompt - 提示词
- * @param signal - AbortSignal
- * @param callbacks - 回调函数
+ * 文本生成模型
  */
 function streamTextToModel(
-  prompt: string,
+  {
+    prompt,
+    texture,
+    textureQuality,
+    geometryQuality,
+    textureSeed,
+    modelSeed,
+    faceLimit,
+    autoSize,
+    compression,
+  }: StreamRequest,
+  augmented: boolean,
   signal: AbortSignal,
   callbacks: StreamCallbacks
 ) {
@@ -128,14 +132,24 @@ function streamTextToModel(
   return streamRequest(
     // "/generate-stream",
     // "/generate-stream-actual",
-    apiConfig.generateStream,
+    augmented ? apiConfig.generateStreamAugmented : apiConfig.generateStream,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({
+        prompt,
+        texture,
+        texture_quality: textureQuality,
+        geometry_quality: geometryQuality,
+        model_seed: modelSeed !== -1 ? modelSeed : undefined,
+        texture_seed: textureSeed !== -1 ? textureSeed : undefined,
+        face_limit: faceLimit !== -1 ? faceLimit : undefined,
+        auto_size: autoSize,
+        compression: compression === "geometry" ? "geometry" : undefined,
+      }),
       signal,
     },
     callbacks
@@ -143,20 +157,37 @@ function streamTextToModel(
 }
 
 /**
- * **用于图片生成模型**
- * @param imageFile - 图片文件
- * @param signal - AbortSignal
- * @param callbacks - 回调函数
+ * 图片生成模型
  */
 function streamImageToModel(
-  imageFile: File,
+  {
+    file,
+    texture,
+    textureQuality,
+    geometryQuality,
+    style,
+    modelSeed,
+    textureSeed,
+    faceLimit,
+    autoSize,
+    compression,
+  }: StreamImageRequest,
   signal: AbortSignal,
   callbacks: StreamCallbacks
 ) {
-  console.log(`[SSE] 正在为图片发送请求: "${imageFile.name}"`);
+  console.log(`[SSE] 正在为图片发送请求: "${file.name}"`);
 
   const formData = new FormData();
-  formData.append("file", imageFile);
+  formData.append("file", file);
+  formData.append("texture", texture ? "true" : "false");
+  formData.append("texture_quality", textureQuality);
+  formData.append("geometry_quality", geometryQuality);
+  style !== "default" && formData.append("style", style);
+  modelSeed !== -1 && formData.append("model_seed", String(modelSeed));
+  textureSeed !== -1 && formData.append("texture_seed", String(textureSeed));
+  faceLimit && faceLimit !== -1 && formData.append("face_limit", String(faceLimit));
+  formData.append("auto_size", autoSize ? "true" : "false");
+  compression === "geometry" && formData.append("compression", "geometry");
 
   return streamRequest(
     // "/generate-stream-image",
@@ -164,7 +195,6 @@ function streamImageToModel(
     apiConfig.generateStreamImage,
     {
       method: "POST",
-      // 注意：使用 FormData 时，不要手动设置 Content-Type，浏览器会自动处理
       body: formData,
       signal,
     },
