@@ -32,10 +32,10 @@
 
 ****后端****：
 环境准备
-- 安装 MySQL，创建并配置数据库
-- 准备 COS 对象存储（bucket、region、AK/SK）
-- 获取 Tripo3D OpenAPI 的 base-url 与 api-key
-- 获取 DeepSeek（或其他 OpenAI 兼容）API Key，用于提示词增强
+1. 安装 MySQL，创建并配置数据库
+2. 准备 COS 对象存储（bucket、region、AK/SK）
+3. 获取 Tripo3D OpenAPI 的 base-url 与 api-key
+4. 获取 DeepSeek（或其他 OpenAI 兼容）API Key，用于提示词增强
 
 数据库初始化
 使用项目提供的 SQL 脚本初始化数据库与表结构：
@@ -44,22 +44,22 @@
 
 配置说明
 编辑 `src/main/resources/application.yml`，至少需要配置以下部分：
-- 服务基础配置
-- 数据库连接
-- LangChain4j（用于 Prompt 增强）
-- Tripo3D（WebClient 与 API Key）
-- COS 对象存储
+1. 服务基础配置
+2. 数据库连接
+3. LangChain4j（用于 Prompt 增强）
+4. Tripo3D（WebClient 与 API Key）
+5. COS 对象存储
 
 注意：
 - `tripo3d.api.base-url` 与 `tripo3d.api.key` 在代码中通过 `@Value("${tripo3d.api.base-url}")`、`@Value("${tripo3d.api.key}")` 注入，必须正确配置，否则无法调用 Tripo3D。
 - LangChain4j 的 `base-url`、`api-key`、`model-name` 请使用你自己的供应商或模型。
 
 构建与运行（Windows）
-- 编译打包
+1. 编译打包
 ```bash
 .\mvnw.cmd clean package
 ```
-- 直接运行（开发模式）
+2. 直接运行（开发模式）
 ```bash
 .\mvnw.cmd spring-boot:run
 ```
