@@ -75,38 +75,6 @@ public class AppController {
                 ));
     }
 
-//    /**
-//     * API端点：根据提示词创建模型生成任务
-//     * 请求体示例: { "prompt": "a high-quality, detailed, 3d model of a hamburger" }
-//     */
-//    @PostMapping("/generate")
-//    public Mono<ResponseEntity<ModelGenerateResponse>> createGenerationTask(@RequestBody Map<String, String> payload) {
-//        String prompt = payload.get("prompt");
-//        if (prompt == null || prompt.isBlank()) {
-//            return Mono.just(ResponseEntity.badRequest().build());
-//        }
-//        return tripo3DService.generateModelFromText(prompt)
-//                .map(ResponseEntity::ok) // 成功时返回 200 OK 和响应体
-//                .onErrorResume(e -> {
-//                    // 简单的错误处理
-//                    log.info("Error calling Tripo3D generate API: " + e.getMessage());
-//                    return Mono.just(ResponseEntity.internalServerError().build());
-//                });
-//    }
-//
-//    /**
-//     * API端点：查询指定任务的状态
-//     */
-//    @GetMapping("/status/{taskId}")
-//    public Mono<ResponseEntity<TaskStatusResponse>> getTaskStatus(@PathVariable String taskId) {
-//        return tripo3DService.checkTaskStatus(taskId)
-//                .map(ResponseEntity::ok)
-//                .onErrorResume(e -> {
-//                    log.error("Error calling Tripo3D status API: " + e.getMessage());
-//                    return Mono.just(ResponseEntity.internalServerError().build());
-//                });
-//    }
-
     /**
      * 使用SSE实时推送3D模型生成进度，并保存模型数据
      */
