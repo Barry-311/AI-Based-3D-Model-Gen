@@ -10,9 +10,8 @@ import {
   type SetStateAction,
 } from "react";
 import * as THREE from "three";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { VertexNormalsHelper } from "three/addons/helpers/VertexNormalsHelper.js";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { Bounds, Box, Html, OrbitControls, Text } from "@react-three/drei";
@@ -22,22 +21,15 @@ import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Progress } from "./ui/progress";
-import ModelIcon from "./ModelIcon";
 import DownloadForm from "./DownloadForm";
-import useGenerationStore from "@/stores/generationStore";
-import { TaskStatus } from "@/types/generation";
+import { toast } from "sonner";
 
 type ModelDetails = {
   size: THREE.Vector3;
   center: THREE.Vector3;
 };
 
-interface IOBJModelProps {
-  objUrl: string;
-  mtlUrl: string;
-  renderTexture: boolean;
-}
+type ExporterFunction = (filename: string) => Promise<void>;
 
 interface IGLBModelProps {
   glbUrl: string;
@@ -45,6 +37,10 @@ interface IGLBModelProps {
   shouldRenderWireframe: boolean;
   shouldRenderVertextNormals: boolean;
   onLoad?: (details: ModelDetails) => void;
+  onExportReady?: (exporters: {
+    exportWithTextures: ExporterFunction;
+    exportWithoutTextures: ExporterFunction;
+  }) => void;
 }
 
 function GroundPlane({ size = 40 }) {
@@ -140,44 +136,13 @@ function ErrorFallback({ error }: { error: { message: string } }) {
   );
 }
 
-function OBJModel({ objUrl, mtlUrl, renderTexture }: IOBJModelProps) {
-  const materials = useLoader(MTLLoader, mtlUrl);
-  const obj = useLoader(OBJLoader, objUrl, (loader) => {
-    materials.preload();
-    for (const material of Object.values(materials.materials)) {
-      material.side = THREE.DoubleSide;
-    }
-    loader.setMaterials(materials);
-  });
-
-  if (!obj) {
-    return null;
-  }
-
-  // 当 renderTexture 变化时，克隆一个新的模型并切换它的材质
-  const clonedObj = useMemo(() => {
-    const clone = obj.clone();
-    clone.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        if (!renderTexture) {
-          // 如果不渲染纹理，就换上一个白色材质
-          child.material = new THREE.MeshPhongMaterial({ color: "white" });
-        }
-      }
-    });
-    return clone;
-  }, [obj, renderTexture]);
-
-  // primitive 组件直接渲染一个现有的 Threejs Object3D 对象
-  return <primitive object={clonedObj} />;
-}
-
 function GLBModel({
   glbUrl,
   shouldRenderTexture,
   shouldRenderWireframe,
   shouldRenderVertextNormals,
   onLoad,
+  onExportReady
 }: IGLBModelProps) {
   const gltf = useLoader(GLTFLoader, glbUrl);
 
@@ -258,6 +223,56 @@ function GLBModel({
         onLoad({ size, center });
       }
     }
+
+    if (gltf.scene && onExportReady) {
+      const exporter = new GLTFExporter();
+
+      const createExporter = (removeTextures: boolean): ExporterFunction => {
+        return async (filename: string) => {
+          const sceneToExport = gltf.scene.clone(true);
+
+          try {
+            if (removeTextures) {
+              sceneToExport.traverse((child) => {
+                if (child instanceof THREE.Mesh && child.material) {
+                  const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                  child.material = whiteMaterial;
+                }
+              });
+            }
+
+            const glb = await new Promise<ArrayBuffer>((resolve, reject) => {
+              exporter.parse(
+                sceneToExport,
+                (result) => resolve(result as ArrayBuffer),
+                (error) => reject(error),
+                { binary: true }
+              );
+            });
+
+            const blob = new Blob([glb], { type: 'model/gltf-binary' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            
+            toast.success("模型导出成功");
+          } catch (error) {
+            console.error("导出失败:", error);
+            toast.error("模型导出失败");
+          }
+        };
+      };
+
+      onExportReady({
+        exportWithTextures: createExporter(false),
+        exportWithoutTextures: createExporter(true),
+      });
+    }
+
   }, [gltf.scene, onLoad]);
 
   // 根据 shouldRenderTexture prop 的变化来切换材质
@@ -276,7 +291,7 @@ function GLBModel({
             child.material = whiteMaterial.clone();
           }
 
-          // 步骤 2: 独立应用线框属性
+          // 独立应用线框属性
           // 无论当前是什么材质，都根据 shouldRenderWireframe 来设置 wireframe 属性
           if (Array.isArray(child.material)) {
             child.material.forEach(
@@ -345,6 +360,21 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
     );
   }
 
+  const modelExporters = useRef<{
+    exportWithTextures: ExporterFunction | null;
+    exportWithoutTextures: ExporterFunction | null;
+  }>({
+    exportWithTextures: null,
+    exportWithoutTextures: null,
+  });
+
+  const handleExportReady = useCallback((exporters: {
+    exportWithTextures: ExporterFunction;
+    exportWithoutTextures: ExporterFunction;
+  }) => {
+    modelExporters.current = exporters;
+  }, []);
+
   return (
     <>
       <div className="h-full w-full flex flex-col">
@@ -387,7 +417,7 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
                 </Button>
               </PopoverTrigger>
               <PopoverContent>
-                <DownloadForm />
+                <DownloadForm exporters={modelExporters.current}  />
               </PopoverContent>
             </Popover>
           </span>
@@ -428,6 +458,7 @@ function ModelPlayground({ glbUrl, customControls }: IModelPlaygroundProps) {
                     shouldRenderWireframe={shouldRenderWireframe}
                     shouldRenderVertextNormals={shouldRenderVertexNormals}
                     onLoad={handleModelLoad}
+                    onExportReady={handleExportReady}
                   />
                   {modelDetails && (
                     // 隐形锚点，用于将 Bounds 的焦点拉低

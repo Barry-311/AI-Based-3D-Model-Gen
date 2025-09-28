@@ -20,7 +20,7 @@ import { IconCaretDownFilled, IconCaretRightFilled } from "@tabler/icons-react";
 interface IEntryProps {
   model: Model;
   onDelete: (id: number) => void;
-  onUpdate: (id: number, isPublic: boolean) => void;
+  onUpdate: (id: number, isPublic: number) => void;
 }
 
 function Entry({ model, onDelete, onUpdate }: IEntryProps) {
@@ -28,7 +28,7 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
     onDelete(model.id);
   };
   const handleUpdate = () => {
-    onUpdate(model.id, !model.isPublic);
+    onUpdate(model.id, model.isPublic === 1 ? 0 : 1);
   };
   return (
     <div className="p-2 my-2 border-b last:border-b-0 flex justify-between items-center">
@@ -40,7 +40,7 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
             className="rounded-md object-cover"
           />
         ) : (
-          <span className="text-sm text-muted-foreground overflow-ellipsis">
+          <span className="text-sm text-muted-foreground line-clamp-3 overflow-ellipsis">
             {model.prompt}
           </span>
         )}
@@ -54,27 +54,17 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
           </DialogTrigger>
           <DialogContent className="!max-w-[80vw] !min-h-[80vh]">
             <DialogTitle className="sr-only">模型详情</DialogTitle>
-            {model.prompt ? (
-              <ModelDetailCard
-                glbUrl={model.pbrModelUrl}
-                creater="你"
-                createTime={new Date(Number(model.createTime)).toLocaleString()}
-                prompt={model.prompt}
-              />
-            ) : (
-              model.pictureUrl && (
-                <ModelDetailCard
-                  glbUrl={model.pbrModelUrl}
-                  creater="你"
-                  createTime={model.createTime}
-                  image={model.pictureUrl}
-                />
-              )
-            )}
+            <ModelDetailCard
+              glbUrl={model.pbrModelUrl}
+              creater="你"
+              createTime={model.createTime}
+              prompt={model.prompt}
+              image={model.pictureUrl}
+            />
           </DialogContent>
         </Dialog>
         <Button variant="link" size="sm" onClick={handleUpdate}>
-          {model.isPublic ? "设为私有" : "设为公开"}
+          {model.isPublic === 1 ? "设为私有" : "设为公开"}
         </Button>
         <Button variant="destructive" size="sm" onClick={handleDelete}>
           删除

@@ -23,7 +23,7 @@ interface ModelStoreState {
 interface ModelStoreActions {
   fetchModels: (userId?: number) => Promise<void>;
   deleteModel: (modelId: number) => Promise<void>;
-  updateModel: (modelId: number, isPublic: boolean) => Promise<void>;
+  updateModel: (modelId: number, isPublic: number) => Promise<void>;
   reset: () => void;
   setSortOrder: (order: SortOrder) => void;
 }
@@ -84,7 +84,7 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
       }
     },
 
-    updateModel: async (modelId: number, isPublic: boolean) => {
+    updateModel: async (modelId: number, isPublic: number) => {
       try {
         await updateModelById({ id: modelId, isPublic });
         set((state) => ({

@@ -33,7 +33,7 @@ function TextForm() {
       .max(1000, {
         message: "提示词不能超过 1000 字符",
       }),
-    isPublic: z.boolean().default(true),
+    isPublic: z.number().default(0),
     withTexture: z.boolean().default(true),
     augment: z.boolean().default(true),
     geometryQuality: z.enum(["standard", "detailed"]).default("standard"),
@@ -94,8 +94,8 @@ function TextForm() {
                   <FormControl>
                     <Switch
                       defaultChecked
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                      checked={field.value === 1}
+                      onCheckedChange={(checked) => field.onChange(checked ? 1 : 0)}
                     />
                   </FormControl>
                   <FormMessage />

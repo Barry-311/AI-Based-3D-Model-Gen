@@ -164,6 +164,7 @@ function ModelLibraryPage() {
                   glbUrl={model.pbrModelUrl}
                   renderImage={model.renderedImageUrl}
                   prompt={model.prompt}
+                  image={model.pictureUrl}
                   creater={`User ${model.userId}`}
                   createTime={model.createTime}
                 />
@@ -176,6 +177,7 @@ function ModelLibraryPage() {
                 glbUrl={model.pbrModelUrl}
                 renderImage={model.renderedImageUrl}
                 prompt={model.prompt}
+                image={model.pictureUrl}
                 creater={`User ${model.userId}`}
                 createTime={model.createTime}
               />

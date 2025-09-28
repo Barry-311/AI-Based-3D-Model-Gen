@@ -12,9 +12,10 @@ interface IModelCardBaseProps {
   createTime: string;
 }
 
-type IModelCardProps =
-  | (IModelCardBaseProps & { prompt: string; image?: never })
-  | (IModelCardBaseProps & { image: string; prompt?: never });
+type IModelCardProps = IModelCardBaseProps & {
+  prompt: string;
+  image: string;
+};
 
 function ModelCard({
   glbUrl,
@@ -45,12 +46,12 @@ function ModelCard({
           </CardContent>
           <CardFooter className="flex-col items-start gap-3 text-sm">
             <Badge variant="outline">
-              {prompt ? "由文本提示词生成" : "由参考图生成"}
+              {prompt !== "图片转模型" ? "由文本提示词生成" : "由参考图生成"}
             </Badge>
-            {prompt ? (
+            {prompt !== "图片转模型" ? (
               <div className="line-clamp-1 font-medium">{prompt}</div>
             ) : (
-              <div>查看图片 {image}</div>
+              <div>图片转模型</div>
             )}
             <div className="text-muted-foreground">
               由 {creater} 创建于 {createTime}
@@ -59,23 +60,13 @@ function ModelCard({
         </Card>
       </DialogTrigger>
       <DialogContent className="!max-w-[80vw] !min-h-[80vh]">
-        {prompt ? (
-          <ModelDetailCard
-            glbUrl={glbUrl}
-            creater={creater}
-            createTime={createTime}
-            prompt={prompt}
-          />
-        ) : (
-          image && (
-            <ModelDetailCard
-              glbUrl={glbUrl}
-              creater={creater}
-              createTime={createTime}
-              image={image}
-            />
-          )
-        )}
+        <ModelDetailCard
+          glbUrl={glbUrl}
+          creater={creater}
+          createTime={createTime}
+          prompt={prompt}
+          image={image}
+        />
       </DialogContent>
     </Dialog>
   );

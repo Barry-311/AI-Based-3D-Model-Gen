@@ -156,7 +156,7 @@ function streamImageToModel(
   formData.append("texture", texture ? "true" : "false");
   formData.append("texture_quality", textureQuality);
   formData.append("geometry_quality", geometryQuality);
-  formData.append("style", style === "default" ? "" : style);
+  style !== "default" && formData.append("style", style);
 
   return streamRequest(
     // "/generate-stream-image",

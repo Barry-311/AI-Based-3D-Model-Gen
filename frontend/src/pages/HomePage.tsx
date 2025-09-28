@@ -1,15 +1,6 @@
-import { IconDownload } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
-import { Button } from "@/components/ui/button";
 import ModelPlayground from "@/components/ModelPlayground";
 import PromptCard from "@/components/PromptCard";
-import DownloadForm from "@/components/DownloadForm";
 import useGenerationStore from "@/stores/generationStore";
 import { TaskStatus } from "@/types/generation";
 import ModelIcon from "@/components/ModelIcon";
@@ -19,19 +10,6 @@ import HistoryCard from "@/components/HistoryCard";
 function HomePage() {
   const { status, progress, error, pbrModelUrl, renderImageUrl } =
     useGenerationStore();
-
-  const modelPlaygroundDownloadControl = (
-    <Popover>
-      <PopoverTrigger>
-        <Button variant="outline">
-          <IconDownload />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <DownloadForm />
-      </PopoverContent>
-    </Popover>
-  );
 
   return (
     <>
@@ -74,7 +52,7 @@ function HomePage() {
             ) : (
               <ModelPlayground
                 glbUrl={pbrModelUrl || ""}
-                customControls={modelPlaygroundDownloadControl}
+                // glbUrl="/test_models/cat/cat.glb"
               />
             )}
           </CardContent>

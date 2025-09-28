@@ -9,7 +9,7 @@ export interface Model {
   renderedImageUrl: string;
   pictureUrl: string;
   userId: number;
-  isPublic: boolean;
+  isPublic: number;
   createTime: string; // ISO 8601 date string, e.g., "2025-01-01T12:00:00Z"
 }
 
@@ -38,5 +38,5 @@ export interface ModelPagedResponse {
 
 export interface ModelRequest {
   id: number;
-  isPublic?: boolean;
+  isPublic?: number;
 }

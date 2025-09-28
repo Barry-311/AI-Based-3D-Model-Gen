@@ -1,133 +1,65 @@
-import z from "zod";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "./ui/form";
-import BaseForm from "./BaseForm";
-import { Checkbox } from "./ui/checkbox";
+// 在 DownloadForm.tsx 中
+import { Button } from "./ui/button"; // 确保引入 Button
 import { toast } from "sonner";
+import { useState } from "react";
 
-const options = [
-  {
-    id: "downloadObj",
-    label: "下载 obj 文件",
-  },
-  {
-    id: "downloadMtl",
-    label: "下载 mtl 文件",
-  },
-] as const;
+// 从 GLBModel.tsx 导入类型定义
+// import type { ExporterFunction } from './GLBModel'; 
 
-function DownloadForm() {
-  const formSchema = z.object({
-    options: z.array(z.string()).refine((value) => value.some((item) => item), {
-      message: "至少选择一项开始下载",
-    }),
-  });
+// 或者在这里重新定义
+type ExporterFunction = (filename: string) => Promise<void>;
 
-  async function handleDownload(fileUrl: string, downloadName: string) {
-    const response = await fetch(fileUrl);
+interface IDownloadFormProps {
+  exporters: {
+    exportWithTextures: ExporterFunction | null;
+    exportWithoutTextures: ExporterFunction | null;
+  };
+}
 
-    if (!response.ok) {
-      throw new Error(`下载时发生错误: ${response.statusText}`);
+// 这个组件现在变得简单多了，不再需要 form
+function DownloadForm({ exporters }: IDownloadFormProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async (exportFunc: ExporterFunction | null, filename: string) => {
+    if (!exportFunc) {
+      toast.error("导出功能尚未准备好，请稍候。");
+      return;
     }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", downloadName);
-    document.body.appendChild(link);
-    link.click();
-
-    if (link.parentNode) {
-      link.parentNode.removeChild(link);
-    }
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleSubmit(values: z.infer<typeof formSchema>) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log(values);
+    setIsDownloading(true);
     try {
-      toast("开始下载");
-      const downloadPromises: Promise<void>[] = [];
-
-      if (values.options.includes("downloadObj")) {
-        downloadPromises.push(
-          handleDownload("/windmill/windmill.obj", "model.obj")
-        );
-      }
-      if (values.options.includes("downloadMtl")) {
-        downloadPromises.push(
-          handleDownload("/windmill/windmill.mtl", "model.mtl")
-        );
-      }
-
-      if (downloadPromises.length > 0) {
-        await Promise.all(downloadPromises);
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`下载时发生错误: ${error}`);
-      } else {
-        toast.error("发生未知错误");
-      }
+      await exportFunc(filename);
+    } finally {
+      setIsDownloading(false);
     }
-  }
+  };
+
+  const isReady = exporters.exportWithTextures && exporters.exportWithoutTextures;
 
   return (
-    <BaseForm
-      schema={formSchema}
-      onSubmit={handleSubmit}
-      defaultValues={{ options: options.map((item) => item.id) }}
-      submitButtonText={{
-        default: "下载",
-        submitting: "正在下载...",
-      }}
-    >
-      {(form) => (
-        <FormField
-          control={form.control}
-          name="options"
-          render={({ field }) => (
-            <FormItem className="mb-2">
-              <FormLabel className="text-base">下载选项</FormLabel>
-              {options.map((option) => (
-                <FormItem
-                  key={option.id}
-                  className="flex flex-row items-center gap-2"
-                >
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value?.includes(option.id)}
-                      onCheckedChange={(checked) => {
-                        return checked
-                          ? field.onChange([...field.value, option.id])
-                          : field.onChange(
-                              field.value?.filter(
-                                (value: (typeof options)[number]["id"]) =>
-                                  value !== option.id
-                              )
-                            );
-                      }}
-                    />
-                  </FormControl>
-                  <FormLabel className="text-sm font-normal">
-                    {option.label}
-                  </FormLabel>
-                </FormItem>
-              ))}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-    </BaseForm>
+    <div className="p-1 space-y-3">
+      <div className="space-y-1">
+        <h4 className="font-medium leading-none">下载模型</h4>
+        <p className="text-sm text-muted-foreground">
+          选择要导出的模型版本。
+        </p>
+      </div>
+      <div className="flex flex-col space-y-2">
+        <Button
+          onClick={() => handleDownload(exporters.exportWithTextures, 'model_with_textures.glb')}
+          disabled={!isReady || isDownloading}
+        >
+          {isDownloading ? "处理中..." : "下载带纹理的模型 (.glb)"}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => handleDownload(exporters.exportWithoutTextures, 'model_no_textures.glb')}
+          disabled={!isReady || isDownloading}
+        >
+          {isDownloading ? "处理中..." : "下载无纹理的模型 (.glb)"}
+        </Button>
+      </div>
+       {!isReady && <p className="text-xs text-center text-gray-500">正在加载导出器...</p>}
+    </div>
   );
 }
 
