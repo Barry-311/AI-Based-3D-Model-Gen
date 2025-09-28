@@ -20,20 +20,26 @@ export type StreamRequest = {
   prompt: string;
   texture: boolean;
   textureQuality: "standard" | "detailed";
-  geometryQuality:"standard" | "detailed";
+  geometryQuality: "standard" | "detailed";
   modelSeed?: number;
   textureSeed?: number;
-}
+  faceLimit?: number;
+  autoSize?: boolean;
+  compression?: "meshopt" | "geometry";
+};
 
 export type StreamImageRequest = {
   file: File;
   texture: boolean;
   textureQuality: "standard" | "detailed";
-  geometryQuality:"standard" | "detailed";
+  geometryQuality: "standard" | "detailed";
   style: string;
   modelSeed?: number;
   textureSeed?: number;
-}
+  faceLimit?: number;
+  autoSize?: boolean;
+  compression?: "meshopt" | "geometry";
+};
 
 export type ResultData = {
   id: number;

@@ -119,6 +119,9 @@ function streamTextToModel(
     geometryQuality,
     textureSeed,
     modelSeed,
+    faceLimit,
+    autoSize,
+    compression,
   }: StreamRequest,
   augmented: boolean,
   signal: AbortSignal,
@@ -143,6 +146,9 @@ function streamTextToModel(
         geometry_quality: geometryQuality,
         model_seed: modelSeed,
         texture_seed: textureSeed,
+        face_limit: faceLimit,
+        auto_size: autoSize,
+        compression: compression === "geometry" ? "geometry" : "",
       }),
       signal,
     },
@@ -154,7 +160,15 @@ function streamTextToModel(
  * 图片生成模型
  */
 function streamImageToModel(
-  { file, texture, textureQuality, geometryQuality, style, modelSeed, textureSeed }: StreamImageRequest,
+  {
+    file,
+    texture,
+    textureQuality,
+    geometryQuality,
+    style,
+    modelSeed,
+    textureSeed,
+  }: StreamImageRequest,
   signal: AbortSignal,
   callbacks: StreamCallbacks
 ) {

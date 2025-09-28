@@ -18,16 +18,25 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Input } from "./ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
+import { Button } from "./ui/button";
+import { ChevronsUpDown } from "lucide-react";
 import BaseForm from "./BaseForm";
 import useGenerationStore from "@/stores/generationStore";
 import { toast } from "sonner";
 import useUserStore from "@/stores/userStore";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"]; // 允许的的图片MIME类型
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 最大文件大小 (10MB)
 
 function ImageForm() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [isAdvancedSettingOpen, setIsAdvancedSettingOpen] = useState(false);
 
   const startImageGeneration = useGenerationStore(
     (state) => state.startImageGeneration
@@ -183,144 +192,253 @@ function ImageForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="geometryQuality"
-              render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
-                  <FormLabel>模型质量</FormLabel>
-                  <FormControl>
-                    <Select
-                      defaultValue="standard"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="standard">标准</SelectItem>
-                          <SelectItem value="detailed">精细</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="textureQuality"
-              render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
-                  <FormLabel>纹理质量</FormLabel>
-                  <FormControl>
-                    <Select
-                      defaultValue="standard"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="standard">标准</SelectItem>
-                          <SelectItem value="detailed">精细</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="style"
-              render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
-                  <FormLabel>模型风格</FormLabel>
-                  <FormControl>
-                    <Select
-                      defaultValue="default"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="default">默认</SelectItem>
-                          <SelectItem value="person:person2cartoon">
-                            人物：卡通
-                          </SelectItem>
-                          <SelectItem value="object:clay">
-                            物体：粘土
-                          </SelectItem>
-                          <SelectItem value="object:steampunk">
-                            物体：蒸汽朋克
-                          </SelectItem>
-                          <SelectItem value="animal:venom">
-                            动物：毒液
-                          </SelectItem>
-                          <SelectItem value="object:barbie">
-                            物体：芭比娃娃
-                          </SelectItem>
-                          <SelectItem value="object:christmas">
-                            物体：圣诞
-                          </SelectItem>
-                          <SelectItem value="gold">黄金</SelectItem>
-                          <SelectItem value="ancient_bronze">
-                            古代青铜
-                          </SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="modelSeed"
-              render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
-                  <FormLabel>模型种子</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value}
-                      onChange={field.onChange}
-                      className="w-[180px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="textureSeed"
-              render={({ field }) => (
-                <FormItem className="flex justify-between items-center">
-                  <FormLabel>纹理种子</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value}
-                      onChange={field.onChange}
-                      className="w-[180px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Collapsible
+              open={isAdvancedSettingOpen}
+              onOpenChange={setIsAdvancedSettingOpen}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-full justify-between"
+                >
+                  <span>高级设置</span>
+                  <ChevronsUpDown />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="flex flex-col gap-2">
+                <FormField
+                  control={form.control}
+                  name="style"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <FormLabel>模型风格</FormLabel>
+                      <FormControl>
+                        <Select
+                          defaultValue="default"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="default">默认</SelectItem>
+                              <SelectItem value="person:person2cartoon">
+                                人物：卡通
+                              </SelectItem>
+                              <SelectItem value="object:clay">
+                                物体：粘土
+                              </SelectItem>
+                              <SelectItem value="object:steampunk">
+                                物体：蒸汽朋克
+                              </SelectItem>
+                              <SelectItem value="animal:venom">
+                                动物：毒液
+                              </SelectItem>
+                              <SelectItem value="object:barbie">
+                                物体：芭比娃娃
+                              </SelectItem>
+                              <SelectItem value="object:christmas">
+                                物体：圣诞
+                              </SelectItem>
+                              <SelectItem value="gold">黄金</SelectItem>
+                              <SelectItem value="ancient_bronze">
+                                古代青铜
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="geometryQuality"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <FormLabel>模型质量</FormLabel>
+                      <FormControl>
+                        <Select
+                          defaultValue="standard"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="standard">标准</SelectItem>
+                              <SelectItem value="detailed">精细</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="textureQuality"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <FormLabel>纹理质量</FormLabel>
+                      <FormControl>
+                        <Select
+                          defaultValue="standard"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="standard">标准</SelectItem>
+                              <SelectItem value="detailed">精细</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="modelSeed"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <FormLabel>模型种子</FormLabel>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>相同的种子可以生成相同的结果，默认使用随机种子</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="w-[180px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="textureSeed"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <FormLabel>纹理种子</FormLabel>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>相同的种子可以生成相同的结果，默认使用随机种子</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="w-[180px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="faceLimit"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <FormLabel>面数上限</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1000}
+                          max={16000}
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="w-[180px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="autoSize"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <FormLabel>自动调整大小</FormLabel>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>根据真实世界大小自动调整模型尺寸</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="compression"
+                  render={({ field }) => (
+                    <FormItem className="flex justify-between items-center">
+                      <FormLabel>模型压缩</FormLabel>
+                      <FormControl>
+                        <Select
+                          defaultValue="meshopt"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="meshopt">
+                                Meshopt 压缩
+                              </SelectItem>
+                              <SelectItem value="geometry">
+                                Geometry 压缩
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </section>
         </>
       )}
