@@ -20,6 +20,9 @@ import type { Model } from "@/types/model";
 import { Button } from "./ui/button";
 import ModelDetailCard from "./ModelDetailCard";
 import { IconCaretDownFilled, IconCaretRightFilled } from "@tabler/icons-react";
+import useUserStore from "@/stores/userStore";
+import { TaskStatus } from "@/types/generation";
+import useGenerationStore from "@/stores/generationStore";
 
 interface IEntryProps {
   model: Model;
@@ -101,8 +104,25 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
 function HistoryCard() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
 
-  const { models, fetchModels, hasMore, isLoading, deleteModel, updateModel } =
-    useModelStore();
+  const {
+    models,
+    fetchModels,
+    hasMore,
+    isLoading,
+    deleteModel,
+    updateModel,
+    reset,
+  } = useModelStore();
+
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
+  const userId = useUserStore((state) => state.user?.id);
+  const generationStatus = useGenerationStore((state) => state.status);
+
+  useEffect(() => {
+    return () => {
+      reset();
+    };
+  }, [reset]);
 
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -124,13 +144,16 @@ function HistoryCard() {
   );
 
   useEffect(() => {
-    if (
-      models.length === 0 &&
-      hasMore &&
-      localStorage.getItem("user-auth-storage")
-    ) {
-      const userId = JSON.parse(localStorage.getItem("user-auth-storage")!)
-        .state.user.id;
+    if (generationStatus === TaskStatus.COMPLETED) {
+      console.log("Generation task completed. Refreshing history list...");
+
+      reset();
+      fetchModels(userId);
+    }
+  }, [generationStatus, fetchModels, reset, userId]);
+
+  useEffect(() => {
+    if (models.length === 0 && hasMore && isAuthenticated) {
       fetchModels(userId);
     }
   }, [models.length, hasMore, fetchModels]);

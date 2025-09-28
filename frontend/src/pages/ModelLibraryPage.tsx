@@ -104,10 +104,16 @@ function ModelLibraryPage() {
   );
 
   useEffect(() => {
+    return () => {
+      reset();
+    };
+  }, [reset]);
+
+  useEffect(() => {
     if (models.length === 0 && hasMore) {
       fetchModels();
     }
-  }, [models.length, hasMore, fetchModels]);
+  }, [models.length, hasMore, fetchModels, location.pathname]);
 
   const handleSortChange = (value: "descend" | "ascend") => {
     if (value === sortOrder) return;

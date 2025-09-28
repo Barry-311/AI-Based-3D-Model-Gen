@@ -21,6 +21,8 @@ export type StreamRequest = {
   texture: boolean;
   textureQuality: "standard" | "detailed";
   geometryQuality:"standard" | "detailed";
+  modelSeed?: number;
+  textureSeed?: number;
 }
 
 export type StreamImageRequest = {
@@ -29,6 +31,8 @@ export type StreamImageRequest = {
   textureQuality: "standard" | "detailed";
   geometryQuality:"standard" | "detailed";
   style: string;
+  modelSeed?: number;
+  textureSeed?: number;
 }
 
 export type ResultData = {

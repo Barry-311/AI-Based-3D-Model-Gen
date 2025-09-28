@@ -44,7 +44,6 @@ export const useModelStore = create<ModelStoreState & ModelStoreActions>(
 
       try {
         const currentPage = get().page;
-        // 调用 API，pageNum 可能需要根据后端是从0还是1开始来调整 (currentPage - 1 或 currentPage)
         const response = await getModelsByPage({
           pageNum: currentPage,
           pageSize: PAGE_SIZE,

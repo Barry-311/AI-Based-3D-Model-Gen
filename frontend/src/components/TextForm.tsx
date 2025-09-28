@@ -20,6 +20,8 @@ import {
 } from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { toast } from "sonner";
+import useUserStore from "@/stores/userStore";
+import { Input } from "./ui/input";
 
 function TextForm() {
   const formSchema = z.object({
@@ -38,20 +40,37 @@ function TextForm() {
     augment: z.boolean().default(true),
     geometryQuality: z.enum(["standard", "detailed"]).default("standard"),
     textureQuality: z.enum(["standard", "detailed"]).default("standard"),
+    modelSeed: z
+      .coerce.number({
+        error: "请输入数字",
+      })
+      .min(0)
+      .max(10000000)
+      .default(-1),
+    textureSeed: z
+      .coerce.number({
+        error: "请输入数字",
+      })
+      .min(0)
+      .max(10000000)
+      .default(-1),
   });
 
   const startTextGeneration = useGenerationStore(
     (state) => state.startTextGeneration
   );
   const reset = useGenerationStore((state) => state.reset);
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    if (localStorage.getItem("user-auth-storage")) {
+    if (isAuthenticated) {
       await startTextGeneration({
         prompt: values.prompt,
         texture: values.withTexture,
         textureQuality: values.textureQuality,
         geometryQuality: values.geometryQuality,
+        modelSeed: values.modelSeed,
+        textureSeed: values.textureSeed,
       });
     } else {
       toast.error("请先登录");
@@ -95,7 +114,9 @@ function TextForm() {
                     <Switch
                       defaultChecked
                       checked={field.value === 1}
-                      onCheckedChange={(checked) => field.onChange(checked ? 1 : 0)}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked ? 1 : 0)
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -192,6 +213,42 @@ function TextForm() {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="modelSeed"
+              render={({ field }) => (
+                <FormItem className="flex justify-between items-center">
+                  <FormLabel>模型种子</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="w-[180px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="textureSeed"
+              render={({ field }) => (
+                <FormItem className="flex justify-between items-center">
+                  <FormLabel>纹理种子</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="w-[180px]"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

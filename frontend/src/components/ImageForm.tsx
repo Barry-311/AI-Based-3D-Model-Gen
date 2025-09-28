@@ -21,6 +21,7 @@ import { Input } from "./ui/input";
 import BaseForm from "./BaseForm";
 import useGenerationStore from "@/stores/generationStore";
 import { toast } from "sonner";
+import useUserStore from "@/stores/userStore";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"]; // 允许的的图片MIME类型
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 最大文件大小 (10MB)
@@ -31,6 +32,8 @@ function ImageForm() {
   const startImageGeneration = useGenerationStore(
     (state) => state.startImageGeneration
   );
+
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
 
   useEffect(() => {
     // 当 previewUrl 改变或组件卸载时清理旧的 URL
@@ -54,6 +57,20 @@ function ImageForm() {
     geometryQuality: z.enum(["standard", "detailed"]).default("standard"),
     textureQuality: z.enum(["standard", "detailed"]).default("standard"),
     style: z.string().default("default"),
+    modelSeed: z.coerce
+      .number({
+        error: "请输入数字",
+      })
+      .min(0)
+      .max(10000000)
+      .default(-1),
+    textureSeed: z.coerce
+      .number({
+        error: "请输入数字",
+      })
+      .min(0)
+      .max(10000000)
+      .default(-1),
   });
 
   function handleChange(
@@ -79,13 +96,15 @@ function ImageForm() {
   }
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    if (localStorage.getItem("user-auth-storage")) {
+    if (isAuthenticated) {
       await startImageGeneration({
         file: values.image,
         style: values.style,
         texture: values.withTexture,
         geometryQuality: values.geometryQuality,
         textureQuality: values.textureQuality,
+        modelSeed: values.modelSeed,
+        textureSeed: values.textureSeed,
       });
     } else {
       toast.error("请先登录");
@@ -261,6 +280,42 @@ function ImageForm() {
                         </SelectGroup>
                       </SelectContent>
                     </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="modelSeed"
+              render={({ field }) => (
+                <FormItem className="flex justify-between items-center">
+                  <FormLabel>模型种子</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="w-[180px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="textureSeed"
+              render={({ field }) => (
+                <FormItem className="flex justify-between items-center">
+                  <FormLabel>纹理种子</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="w-[180px]"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

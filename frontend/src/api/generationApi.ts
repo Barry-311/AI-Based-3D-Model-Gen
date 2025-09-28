@@ -112,7 +112,14 @@ async function streamRequest(
  * 文本生成模型
  */
 function streamTextToModel(
-  { prompt, texture, textureQuality, geometryQuality }: StreamRequest,
+  {
+    prompt,
+    texture,
+    textureQuality,
+    geometryQuality,
+    textureSeed,
+    modelSeed,
+  }: StreamRequest,
   augmented: boolean,
   signal: AbortSignal,
   callbacks: StreamCallbacks
@@ -134,6 +141,8 @@ function streamTextToModel(
         texture,
         texture_quality: textureQuality,
         geometry_quality: geometryQuality,
+        model_seed: modelSeed,
+        texture_seed: textureSeed,
       }),
       signal,
     },
@@ -145,7 +154,7 @@ function streamTextToModel(
  * 图片生成模型
  */
 function streamImageToModel(
-  { file, texture, textureQuality, geometryQuality, style }: StreamImageRequest,
+  { file, texture, textureQuality, geometryQuality, style, modelSeed, textureSeed }: StreamImageRequest,
   signal: AbortSignal,
   callbacks: StreamCallbacks
 ) {
@@ -157,6 +166,8 @@ function streamImageToModel(
   formData.append("texture_quality", textureQuality);
   formData.append("geometry_quality", geometryQuality);
   style !== "default" && formData.append("style", style);
+  modelSeed !== -1 && formData.append("model_seed", String(modelSeed));
+  textureSeed !== -1 && formData.append("texture_seed", String(textureSeed));
 
   return streamRequest(
     // "/generate-stream-image",

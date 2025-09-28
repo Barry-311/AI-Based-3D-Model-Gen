@@ -6,10 +6,13 @@ import { TaskStatus } from "@/types/generation";
 import ModelIcon from "@/components/ModelIcon";
 import { Progress } from "@/components/ui/progress";
 import HistoryCard from "@/components/HistoryCard";
+import useUserStore from "@/stores/userStore";
 
 function HomePage() {
   const { status, progress, error, pbrModelUrl, renderImageUrl } =
     useGenerationStore();
+
+  const { isAuthenticated } = useUserStore();
 
   return (
     <>
@@ -23,11 +26,7 @@ function HomePage() {
               <PromptCard />
             </CardContent>
           </Card>
-          {localStorage.getItem("user-auth-storage") &&
-            JSON.parse(localStorage.getItem("user-auth-storage")!).state &&
-            JSON.parse(localStorage.getItem("user-auth-storage")!).state.user &&
-            JSON.parse(localStorage.getItem("user-auth-storage")!).state.user
-              .id && <HistoryCard />}
+          {isAuthenticated && <HistoryCard />}
         </section>
       </section>
       <section className="basis-[70%] flex">
