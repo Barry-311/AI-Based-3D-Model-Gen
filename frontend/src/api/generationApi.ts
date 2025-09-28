@@ -144,11 +144,11 @@ function streamTextToModel(
         texture,
         texture_quality: textureQuality,
         geometry_quality: geometryQuality,
-        model_seed: modelSeed,
-        texture_seed: textureSeed,
-        face_limit: faceLimit,
+        model_seed: modelSeed !== -1 ? modelSeed : undefined,
+        texture_seed: textureSeed !== -1 ? textureSeed : undefined,
+        face_limit: faceLimit !== -1 ? faceLimit : undefined,
         auto_size: autoSize,
-        compression: compression === "geometry" ? "geometry" : "",
+        compression: compression === "geometry" ? "geometry" : undefined,
       }),
       signal,
     },
@@ -168,6 +168,9 @@ function streamImageToModel(
     style,
     modelSeed,
     textureSeed,
+    faceLimit,
+    autoSize,
+    compression,
   }: StreamImageRequest,
   signal: AbortSignal,
   callbacks: StreamCallbacks
@@ -182,6 +185,9 @@ function streamImageToModel(
   style !== "default" && formData.append("style", style);
   modelSeed !== -1 && formData.append("model_seed", String(modelSeed));
   textureSeed !== -1 && formData.append("texture_seed", String(textureSeed));
+  faceLimit && faceLimit !== -1 && formData.append("face_limit", String(faceLimit));
+  formData.append("auto_size", autoSize ? "true" : "false");
+  compression === "geometry" && formData.append("compression", "geometry");
 
   return streamRequest(
     // "/generate-stream-image",

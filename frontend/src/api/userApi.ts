@@ -35,7 +35,7 @@ async function logout() {
 async function feedback(data: FeedbackRequest) {
   return fetchApi<boolean>(apiConfig.feedback, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ feedbackType: "model_quality", ...data }),
   });
 }
 

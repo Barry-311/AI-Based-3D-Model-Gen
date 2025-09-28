@@ -80,6 +80,19 @@ function ImageForm() {
       .min(0)
       .max(10000000)
       .default(-1),
+    faceLimit: z.coerce
+      .number({
+        error: "请输入 1000 - 16000 之间的数字",
+      })
+      .min(1000, {
+        message: "请输入 1000 - 16000 之间的数字",
+      })
+      .max(16000, {
+        message: "请输入 1000 - 16000 之间的数字",
+      })
+      .default(-1),
+    autoSize: z.boolean().default(false),
+    compression: z.enum(["meshopt", "geometry"]).default("meshopt"),
   });
 
   function handleChange(

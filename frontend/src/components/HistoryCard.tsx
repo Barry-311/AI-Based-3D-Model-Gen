@@ -70,9 +70,9 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
             />
           </DialogContent>
         </Dialog>
-        <Button variant="link" size="sm" onClick={handleUpdate}>
+        {/* <Button variant="link" size="sm" onClick={handleUpdate}>
           {model.isPublic === 1 ? "设为私有" : "设为公开"}
-        </Button>
+        </Button> */}
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="link" size="sm">
