@@ -65,3 +65,6 @@ create table if not exists user_feedback
     INDEX idx_feedbackType (feedbackType)
     ) comment '用户反馈表' collate = utf8mb4_unicode_ci;
 
+ALTER TABLE model_3d
+    -- 添加新列
+    ADD COLUMN genTime VARCHAR(50) NULL COMMENT '生成时间';

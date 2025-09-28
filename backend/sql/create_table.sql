@@ -62,6 +62,10 @@ ALTER TABLE model_3d
     -- 添加新列
     ADD COLUMN isPublic BOOLEAN DEFAULT FALSE NOT NULL COMMENT '是否公开';
 
+ALTER TABLE model_3d
+    -- 添加新列
+    ADD COLUMN genTime VARCHAR(50) NULL COMMENT '生成时间';
+
 -- 用户反馈表
 create table if not exists user_feedback
 (
