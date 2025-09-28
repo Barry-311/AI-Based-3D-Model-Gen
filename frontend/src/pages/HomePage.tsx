@@ -9,8 +9,7 @@ import HistoryCard from "@/components/HistoryCard";
 import useUserStore from "@/stores/userStore";
 
 function HomePage() {
-  const { status, progress, error, pbrModelUrl, renderImageUrl } =
-    useGenerationStore();
+  const { status, progress, pbrModelUrl } = useGenerationStore();
 
   const { isAuthenticated } = useUserStore();
 
@@ -49,10 +48,7 @@ function HomePage() {
                 {status === TaskStatus.FAILED && <div>生成时发生错误</div>}
               </div>
             ) : (
-              <ModelPlayground
-                glbUrl={pbrModelUrl || ""}
-                // glbUrl="/test_models/cat/cat.glb"
-              />
+              <ModelPlayground glbUrl={pbrModelUrl || ""} />
             )}
           </CardContent>
         </Card>

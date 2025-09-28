@@ -13,7 +13,6 @@ import {
   FormMessage,
 } from "./ui/form";
 import { feedback } from "@/api/userApi";
-import { useState } from "react";
 
 const feedbackSchema = z.object({
   rating: z.coerce
@@ -36,11 +35,9 @@ export function FeedbackForm({
   onSuccess,
   ...props
 }: IFeedbackFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof feedbackSchema>>();
 
   async function handleSubmit(data: z.infer<typeof feedbackSchema>) {
-    setIsSubmitting(true);
     try {
       await feedback({
         rating: data.rating,
@@ -61,8 +58,6 @@ export function FeedbackForm({
         message: errorMessage,
       });
       toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
     }
   }
 

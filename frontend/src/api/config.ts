@@ -1,5 +1,5 @@
-const baseUrl = `https://stubbly-onomatologic-jaxton.ngrok-free.dev/api`;
-// const baseUrl = `http://118.25.143.47/api`;
+// const baseUrl = `https://stubbly-onomatologic-jaxton.ngrok-free.dev`;
+const baseUrl = `http://118.25.143.47`;
 
 const config = {
   // mock
@@ -14,18 +14,18 @@ const config = {
   // deleteModelById: "api/model/delete",
   // updateModelById: "api/model/update"
 
-  generateStream: `${baseUrl}/app/generate-stream`,
-  generateStreamAugmented: `${baseUrl}/app/generate-stream-augmented`,
-  generateStreamImage: `${baseUrl}/app/generate-stream-image`,
-  userRegister: `${baseUrl}/user/register`,
-  userLogin: `${baseUrl}/user/login`,
-  userLogout: `${baseUrl}/user/logout`,
-  getModelsByPage: `${baseUrl}/model/list/page/vo`,
-  getModelById: `${baseUrl}/model/get`,
-  deleteModelById: `${baseUrl}/model/delete`,
-  updateModelById: `${baseUrl}/model/update`,
-  feedback: `${baseUrl}/feedback/add`,
-  getFeedbackByPage: `${baseUrl}/feedback/list/page/vo`,
+  generateStream: `${baseUrl}/api/app/generate-stream`,
+  generateStreamAugmented: `${baseUrl}/api/app/generate-stream-augmented`,
+  generateStreamImage: `${baseUrl}/api/app/generate-stream-image`,
+  userRegister: `${baseUrl}/api/user/register`,
+  userLogin: `${baseUrl}/api/user/login`,
+  userLogout: `${baseUrl}/api/user/logout`,
+  getModelsByPage: `${baseUrl}/api/model/list/page/vo`,
+  getModelById: `${baseUrl}/api/model/get`,
+  deleteModelById: `${baseUrl}/api/model/delete`,
+  updateModelById: `${baseUrl}/api/model/update`,
+  feedback: `${baseUrl}/api/feedback/add`,
+  getFeedbackByPage: `${baseUrl}/api/feedback/list/page/vo`,
 };
 
 export { config as apiConfig };

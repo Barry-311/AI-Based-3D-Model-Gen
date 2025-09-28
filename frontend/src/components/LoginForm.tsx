@@ -29,7 +29,7 @@ export function LoginForm({
   ...props
 }: ILoginFormProps & React.ComponentProps<"div">) {
   const form = useForm<z.infer<typeof loginSchema>>();
-  const { login, isLoading } = useUserStore();
+  const { login } = useUserStore();
 
   async function handleSubmit(data: z.infer<typeof loginSchema>) {
     try {
