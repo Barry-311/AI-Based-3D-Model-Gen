@@ -89,7 +89,7 @@ function Header() {
                         用户反馈
                       </DropdownMenuItem>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent  className="max-w-fit">
                       {user?.userRole === "admin" ? (
                         <FeedbackList />
                       ) : (

@@ -40,9 +40,9 @@ async function feedback(data: FeedbackRequest) {
 }
 
 async function getFeedbackByPage(data: FeedbackPagedRequest) {
-  return fetchApi<FeedbackPagedResponse>(apiConfig.feedback, {
+  return fetchApi<FeedbackPagedResponse>(apiConfig.getFeedbackByPage, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ feedbackType: "model_quality", ...data }),
   });
 }
 

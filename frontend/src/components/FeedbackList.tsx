@@ -72,7 +72,7 @@ function FeedbackList() {
             <TableRow>
               <TableHead className="w-[80px]">打分</TableHead>
               <TableHead>标题</TableHead>
-              <TableHead className="hidden md:table-cell">Content</TableHead>
+              <TableHead className="hidden md:table-cell">内容</TableHead>
               <TableHead className="text-right hidden sm:table-cell">
                 日期
               </TableHead>
@@ -81,7 +81,6 @@ function FeedbackList() {
           <TableBody>
             {data.records.map((feedback) => (
               <TableRow key={feedback.id}>
-                <TableCell className="font-medium">{feedback.id}</TableCell>
                 <TableCell>
                   <Badge
                     variant={feedback.rating < 3 ? "destructive" : "default"}
