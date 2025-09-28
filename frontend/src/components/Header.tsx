@@ -21,6 +21,8 @@ import {
 import { RegisterForm } from "./RegisterForm";
 import useUserStore from "@/stores/userStore";
 import { cn } from "@/lib/utils";
+import { FeedbackForm } from "./FeedbackForm";
+import FeedbackList from "./FeedbackList";
 
 const navItems = [
   { name: "首页", href: "/" },
@@ -81,6 +83,20 @@ function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        用户反馈
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      {user?.userRole === "admin" ? (
+                        <FeedbackList />
+                      ) : (
+                        <FeedbackForm />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                   <DropdownMenuItem onClick={logout}>退出登录</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

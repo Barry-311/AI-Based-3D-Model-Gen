@@ -23,7 +23,9 @@ const config = {
   getModelsByPage: `${baseUrl}/model/list/page/vo`,
   getModelById: `${baseUrl}/model/get`,
   deleteModelById: `${baseUrl}/model/delete`,
-  updateModelById: `${baseUrl}/model/update`
+  updateModelById: `${baseUrl}/model/update`,
+  feedback: `${baseUrl}/feedback/add`,
+  getFeedbackByPage: `${baseUrl}/feedback/list/page/vo`,
 };
 
 export { config as apiConfig };
