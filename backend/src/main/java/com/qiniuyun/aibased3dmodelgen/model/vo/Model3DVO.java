@@ -59,6 +59,11 @@ public class Model3DVO implements Serializable {
     private Long userId;
 
     /**
+     * 生成时间
+     */
+    private String genTime;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

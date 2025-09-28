@@ -84,6 +84,15 @@ public class Model3DServiceImpl extends ServiceImpl<Model3DMapper, Model3D> impl
 
             try {
                 log.info("任务 {} 已成功，开始下载和上传模型资源.", taskId);
+                // 计算生成耗时（秒，两位小数），仅在首次成功时设置，避免重复覆盖
+                if (StringUtils.isBlank(model3D.getGenTime()) && taskStatusResponse.getData() != null) {
+                    long createTime = taskStatusResponse.getData().getCreateTime();
+                    // 兼容秒/毫秒时间戳
+                    long startMillis = createTime > 1_000_000_000_000L ? createTime : createTime * 1000L;
+                    double seconds = (System.currentTimeMillis() - startMillis) / 1000.0;
+                    String genTimeStr = String.format("%.2f", seconds);
+                    model3D.setGenTime(genTimeStr);
+                }
                 TaskStatusResponse.Output output = taskStatusResponse.getData().getOutput();
 
                 // 获取临时的下载URL

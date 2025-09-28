@@ -57,6 +57,9 @@ public class Model3D implements Serializable {
     @Column("userId")
     private Long userId;
 
+    @Column("genTime")
+    private String genTime;
+
     @Column("createTime")
     private LocalDateTime createTime;
 
