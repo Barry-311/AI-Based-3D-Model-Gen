@@ -144,7 +144,7 @@ function ModelLibraryPage() {
 
     return models.filter((model) => {
       if (showText) {
-        return !!model.prompt;
+        return model.prompt !== "图片转模型";
       }
       if (showImage) {
         return !!model.pictureUrl;
