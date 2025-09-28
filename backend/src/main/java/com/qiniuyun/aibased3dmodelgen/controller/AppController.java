@@ -2,6 +2,7 @@ package com.qiniuyun.aibased3dmodelgen.controller;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.qiniuyun.aibased3dmodelgen.ai.AiGeneratorFacade;
 import com.qiniuyun.aibased3dmodelgen.exception.ErrorCode;
 import com.qiniuyun.aibased3dmodelgen.exception.ThrowUtils;
@@ -90,6 +91,17 @@ public class AppController {
         ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
         BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
+        // 计算请求签名，实现幂等性
+        String requestSignature = DigestUtil.sha256Hex(JSONUtil.toJsonStr(modelGenerateStreamRequest));
+        Model3D existing = model3DService.getByRequestSignature(requestSignature);
+        if (existing != null && "success".equals(existing.getStatus())) {
+            Model3DVO vo = model3DService.getModel3DVO(existing);
+            return Flux.just(ServerSentEvent.<Model3DVO>builder()
+                    .data(vo)
+                    .event("progress")
+                    .build());
+        }
+
         return tripo3DService.generateModelFromText(modelGenerateRequest)
                 .publishOn(tripoBlockingScheduler)
                 .flatMapMany(response -> {
@@ -102,7 +114,7 @@ public class AppController {
                             .map(statusResponse -> {
                                 // 保存或更新模型数据，传递用户的实际提示词
                                 Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse,
-                                        modelGenerateStreamRequest.getPrompt(), request);
+                                        modelGenerateStreamRequest.getPrompt(), requestSignature, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })
@@ -148,6 +160,17 @@ public class AppController {
         ModelGenerateRequest modelGenerateRequest = new ModelGenerateRequest();
         BeanUtils.copyProperties(modelGenerateStreamRequest, modelGenerateRequest);
 
+        // 计算请求签名，实现幂等性（增强后提示词）
+        String requestSignature = DigestUtil.sha256Hex(JSONUtil.toJsonStr(modelGenerateStreamRequest));
+        Model3D existing = model3DService.getByRequestSignature(requestSignature);
+        if (existing != null && "success".equals(existing.getStatus())) {
+            Model3DVO vo = model3DService.getModel3DVO(existing);
+            return Flux.just(ServerSentEvent.<Model3DVO>builder()
+                    .data(vo)
+                    .event("progress")
+                    .build());
+        }
+
         return tripo3DService.generateModelFromText(modelGenerateRequest)
                 .publishOn(tripoBlockingScheduler)
                 .flatMapMany(response -> {
@@ -159,7 +182,7 @@ public class AppController {
                             .publishOn(tripoBlockingScheduler)
                             .map(statusResponse -> {
                                 // 保存或更新模型数据
-                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, augmentedPrompt, request);
+                                Model3D model3D = model3DService.saveOrUpdateModelFromText(statusResponse, augmentedPrompt, requestSignature, request);
                                 // 转换为VO对象
                                 return model3DService.getModel3DVO(model3D);
                             })

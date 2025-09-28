@@ -39,6 +39,9 @@ public class Model3D implements Serializable {
     @Column("prompt")
     private String prompt;
 
+    @Column("requestSignature")
+    private String requestSignature;
+
     @Column("status")
     private String status;
 

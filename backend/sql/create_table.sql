@@ -32,6 +32,7 @@ create table if not exists model_3d
     taskId         varchar(256)                       not null comment 'Tripo3D任务ID',
     name           varchar(256)                       not null comment '模型名称',
     prompt          text                               not null comment '生成提示词',
+    requestSignature varchar(128)                      null comment '请求签名',
     status          varchar(50)                        not null comment '任务状态',
     progress        int          default 0             not null comment '生成进度',
     pbrModelUrl   varchar(1024)                      null comment 'PBR模型URL',
@@ -56,7 +57,8 @@ ALTER TABLE model_3d
 ALTER TABLE model_3d
     ADD COLUMN userId BIGINT NULL COMMENT '用户ID',
     ADD INDEX idx_userId (userId),
-    ADD CONSTRAINT fk_model3d_user FOREIGN KEY (userId) REFERENCES user(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_model3d_user FOREIGN KEY (userId) REFERENCES user(id) ON DELETE SET NULL,
+    ADD UNIQUE KEY uk_requestSignature_userId (requestSignature, userId);
 
 ALTER TABLE model_3d
     -- 添加新列
@@ -65,6 +67,10 @@ ALTER TABLE model_3d
 ALTER TABLE model_3d
     -- 添加新列
     ADD COLUMN genTime VARCHAR(50) NULL COMMENT '生成时间';
+
+ALTER TABLE model_3d
+    -- 添加请求签名索引
+    ADD INDEX idx_requestSignature (requestSignature);
 
 -- 用户反馈表
 create table if not exists user_feedback
