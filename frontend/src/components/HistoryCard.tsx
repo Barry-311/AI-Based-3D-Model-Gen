@@ -30,12 +30,9 @@ interface IEntryProps {
   onUpdate: (id: number, isPublic: number) => void;
 }
 
-function Entry({ model, onDelete, onUpdate }: IEntryProps) {
+function Entry({ model, onDelete }: IEntryProps) {
   const handleDelete = () => {
     onDelete(model.id);
-  };
-  const handleUpdate = () => {
-    onUpdate(model.id, model.isPublic === 1 ? 0 : 1);
   };
   return (
     <div className="p-2 my-2 border-b last:border-b-0 flex justify-between items-center">
@@ -70,9 +67,6 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
             />
           </DialogContent>
         </Dialog>
-        {/* <Button variant="link" size="sm" onClick={handleUpdate}>
-          {model.isPublic === 1 ? "设为私有" : "设为公开"}
-        </Button> */}
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="link" size="sm">
