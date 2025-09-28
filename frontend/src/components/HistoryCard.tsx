@@ -6,7 +6,11 @@ import {
 } from "@/components/ui/collapsible";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -66,9 +70,29 @@ function Entry({ model, onDelete, onUpdate }: IEntryProps) {
         <Button variant="link" size="sm" onClick={handleUpdate}>
           {model.isPublic === 1 ? "设为私有" : "设为公开"}
         </Button>
-        <Button variant="destructive" size="sm" onClick={handleDelete}>
-          删除
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="link" size="sm">
+              删除
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>你确定要删除吗？</DialogTitle>
+              <DialogDescription className="sr-only">
+                你确定要删除吗？
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">取消</Button>
+              </DialogClose>
+              <Button variant="destructive" onClick={handleDelete}>
+                确认删除
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
